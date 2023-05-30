@@ -21,7 +21,7 @@ In dev <br>
 
 ## Установка
 ```
-git clone https://github.com/chelovekpayk/gpn_rosnedra/
+git clone https://github.com/oleg-wl/gpn_rosnedra/
 pip install -r requirements.txt
 ```
 Информация об основных командах

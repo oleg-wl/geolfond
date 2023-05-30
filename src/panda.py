@@ -143,6 +143,9 @@ def construct_df(nested_data: dict):
         "Наименоваение недропользователя"
     ].rename("prev_owner")
 
+    #TODO: Добавить выгрузку для столбца с будущим недропользователем
+    #TODO: forw_owner_df и добавить строку конкат
+
     # Присоединение столбца с данными о предыдущих владельцах
     df = pd.concat([df, prev_owner_df], axis=1, join="outer").rename_axis(
         "Государственный регистрационный номер"
