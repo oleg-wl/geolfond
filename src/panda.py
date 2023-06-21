@@ -9,27 +9,27 @@ def construct_df(nested_data: dict):
     Функция для создания пандас-датафрейма и обработки словаря, полученного после запроса к реестру. Возвращает датафрейм для сохранения.
     """
     # Переменные столбцов и типов для возврата датафрейма.
-    cols = [
-        "Дата лицензии",
-        "СубъектРФ",
-        "Вид полезного ископаемого",
-        "Наименование участка недр",
-        "Сведения о пользователе недр",
-        "INN",
-        "Наименоваение недропользователя",
-        "prev_owner",
-        "Last",
-        "Year",
+    cols = {
+        "Дата лицензии":'date',
+        "СубъектРФ":'state',
+        "Вид полезного ископаемого":'type',
+        "Наименование участка недр":'name',
+        #"Сведения о пользователе недр",
+        "INN":"INN",
+        "Наименоваение недропользователя":'owner',
+        "prev_owner":"prew_owner",
+        "Last":"Last",
+        "Year":"Year",
         #"Координаты",
-        "N", #Самая северная точка участка для определения применимости налоговых льгот
-        "E",
         #"Сведения о переоформлении лицензии на пользование недрами",
         #"Ранее выданные лицензии",
-        "prev_lic",
-        "prev_date",
-        "forw_lic",
-        "forw_date",
-    ]
+        "prev_lic":"prev_lic",
+        "prev_date":"prev_date",
+        "forw_lic":"forw_lic",
+        "forw_date":'forw_date',
+        "N":"N", #Самая северная точка участка для определения применимости налоговых льгот
+        "E":"E"
+    }
     types = {
         "Дата лицензии": "datetime64[D]",
         "Last": "bool",
@@ -155,28 +155,29 @@ def construct_df(nested_data: dict):
     #TODO: Сделать столбец с будущими владельцами.
 
     # STEP PREV_NAMES-----------
-    for i in range(100):
-        names_df = df.reset_index().set_index("prev_lic")
-        names_df = names_df[names_df.index.notnull()]
-
-        # Лист лицензий из names_df:
-        lst = names_df.index.unique().tolist()
-        # Лист лицензий из основного ДФ у которых нет названий но есть названия в names_df:
-        lst2 = df.index[
-            df.index.isin(lst) & df["Наименование участка недр"].isna()
-        ].tolist()
-
-        # Замена значений названий:
-        df.loc[df.index.isin(lst2), ["Наименование участка недр"]] = names_df.loc[
-            names_df.index.isin(lst2)
-        ]
+#!Замена названий участков может быть не точной.
+#
+#   for i in range(100):
+#        names_df = df.reset_index().set_index("prev_lic")
+#        names_df = names_df[names_df.index.notnull()]
+#
+#        # Лист лицензий из names_df:
+#        lst = names_df.index.unique().tolist()
+#        # Лист лицензий из основного ДФ у которых нет названий но есть названия в names_df:
+#        lst2 = df.index[
+#            df.index.isin(lst) & df["Наименование участка недр"].isna()
+#        ].tolist()
+#
+#        # Замена значений названий:
+#        df.loc[df.index.isin(lst2), ["Наименование участка недр"]] = names_df.loc[
+#            names_df.index.isin(lst2)
+#        ]
 
     df = (
-        df[cols]
+        df[cols.keys()]
         .astype(dtype=types)
-        .where(
-            ~df.isnull(), ""
-        )  # заменить значения NaN на пустые для выгрузки в эксель
+        .where(~df.isnull(), "")
+        .rename(columns=cols)
     )
     return df
 
@@ -234,7 +235,7 @@ def construct_pivot(df: pd.DataFrame) -> pd.DataFrame:
     df_pivoted = (
         df_main.pivot(
             index=[
-                "Наименование участка недр",
+                "Наименование участка недр", #!Будет ошибка из-за пустых строк или дубликатов
                 "Государственный регистрационный номер",
                 "Дата лицензии",
             ],

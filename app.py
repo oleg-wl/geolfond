@@ -138,12 +138,8 @@ class ReestrDatabase(ReestrRequest):
 if __name__ == "__main__":
     # Запуск для автоматической выгрузки по нефти или дебаггинга
 
-    filepath = os.path.join(dpath, "reestr_pivot.xlsx")
+    #filepath = os.path.join(dpath, "reestr_pivot.xlsx")
 
     r1 = ReestrRequest(queries.lfilt["oil"])
-    save_in_excel(filepath, r1.create_df(), "reestr_oil")
+    save_in_excel('data.xlsx', r1.create_df(), "reestr_oil")
 
-    r2 = PivotMatrix(queries.lfilt["oil"])
-    save_in_excel(filepath, r2.pivoting(), "Licensoins_pivot")
-
-    r3 = ReestrDatabase(queries.lfilt["oil"])
