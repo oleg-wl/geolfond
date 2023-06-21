@@ -10,6 +10,7 @@ def construct_df(nested_data: dict):
     """
     # Переменные столбцов и типов для возврата датафрейма.
     cols = {
+        "Государственный регистрационный номер":'num',
         "Дата лицензии":'date',
         "СубъектРФ":'state',
         "Вид полезного ископаемого":'type',
@@ -174,9 +175,10 @@ def construct_df(nested_data: dict):
 #        ]
 
     df = (
-        df[cols.keys()]
+        df[list(cols.keys())[1:]]
         .astype(dtype=types)
         .where(~df.isnull(), "")
+        .reset_index()
         .rename(columns=cols)
     )
     return df
