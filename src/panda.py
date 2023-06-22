@@ -65,6 +65,7 @@ def construct_df(nested_data: dict):
         .set_index("Государственный регистрационный номер")
     )
 
+    
     # выделение столбца ГОД
     df["Year"] = pd.to_datetime(
         df["Дата лицензии"], format="%Y-%m-%d", yearfirst=True
@@ -90,6 +91,9 @@ def construct_df(nested_data: dict):
         .replace(pattern_for_replace_inn, "", regex=True)
         .str.strip()
     )
+    #!замена ошибок в данных по ИНН
+    #TODO: заполнить сюда список. Тут только в ручную из спарка.
+    df.loc[df['INN'] == '8901001325', 'Наименоваение недропользователя'] = 'РОСНЕФТЬ - ЯМАЛНЕФТЕПРОДУКТ'
 
     # STEP PREV_FORW_LIC-----------
     # Извлечение номеров предыдущих и будущих:
