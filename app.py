@@ -115,7 +115,6 @@ class PivotMatrix(ReestrRequest):
 
         return self.piv_df
 
-
 class ReestrDatabase(ReestrRequest):
     # Класс для сохранения в базу данных sqlite3
 
@@ -140,6 +139,6 @@ if __name__ == "__main__":
 
     #filepath = os.path.join(dpath, "reestr_pivot.xlsx")
 
-    r1 = ReestrRequest(queries.lfilt["oil"])
-    save_in_excel('data.xlsx', r1.create_df(), "reestr_oil")
+    reestr = ReestrRequest(queries.lfilt["oil"])
+    save_in_excel('data.xlsx', reestr.create_df(), "reestr_oil")
 

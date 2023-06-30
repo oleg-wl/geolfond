@@ -17,7 +17,7 @@ def construct_df(nested_data: dict):
         "Наименование участка недр":'name',
         #"Сведения о пользователе недр",
         "INN":"INN",
-        "Наименоваение недропользователя":'owner',
+        "owner":'owner',
         "prev_owner":"prew_owner",
         "Last":"Last",
         "Year":"Year",
@@ -29,7 +29,10 @@ def construct_df(nested_data: dict):
         "forw_lic":"forw_lic",
         "forw_date":'forw_date',
         "N":"N", #Самая северная точка участка для определения применимости налоговых льгот
-        "E":"E"
+        "E":"E",
+        "rad_N":"rad_N",
+        "rad_E":"rad_E",
+        "month":"month"
     }
     types = {
         "Дата лицензии": "datetime64[D]",
@@ -64,12 +67,12 @@ def construct_df(nested_data: dict):
         )
         .set_index("Государственный регистрационный номер")
     )
-
     
     # выделение столбца ГОД
-    df["Year"] = pd.to_datetime(
+    df["Дата лицензии"] = pd.to_datetime(
         df["Дата лицензии"], format="%Y-%m-%d", yearfirst=True
-    ).dt.year  # Год лицензии
+    )
+    df["Year"] = df["Дата лицензии"].dt.year  # Год лицензии
     df["Last"] = np.where(
         df["Сведения о переоформлении лицензии на пользование недрами"].isna(),
         True,
@@ -86,22 +89,46 @@ def construct_df(nested_data: dict):
     df["INN"] = (
         df["INN"].astype(str, errors="ignore").str.replace(".0", "", regex=False)
     )
-    df["Наименоваение недропользователя"] = (
+    df["owner"] = (
         df["Сведения о пользователе недр"]
         .replace(pattern_for_replace_inn, "", regex=True)
         .str.strip()
     )
-    #!замена ошибок в данных по ИНН
-    #TODO: заполнить сюда список. Тут только в ручную из спарка.
-    df.loc[df['INN'] == '8901001325', 'Наименоваение недропользователя'] = 'РОСНЕФТЬ - ЯМАЛНЕФТЕПРОДУКТ'
-    df.loc[df['INN'] == '7202202348', 'Наименоваение недропользователя'] = 'АКЦИОНЕРНОЕ ОБЩЕСТВО ""СИБИРСКАЯ НЕФТЕГАЗОВАЯ КОМПАНИЯ" (ликвидирована)'
-    df.loc[df['INN'] == '8601000377', 'Наименоваение недропользователя'] = 'ОАО Тендерресурс (реорганизована)'
-    df.loc[df['INN'] == '5902857530', 'Наименоваение недропользователя'] = 'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ ""ГЕОРЕСУРС""(ликвидирована)'
-    df.loc[df['INN'] == '5904265497', 'Наименоваение недропользователя'] = 'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ ""ГЕОСЕРВИС""(ликвидирована)'
-    
-    
-    
-    
+
+#Функция для очистки данных о недропользователях
+#Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
+#Как праило это ликвидированные или реорганизованные недропользователи    
+    def change_inn(owners):
+        for owner in owners:
+            try:
+                query = df.loc[(df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+                df.loc[df['owner'] == owner, 'INN'] = query.iloc[0,0]
+            except Exception:
+                continue
+    def change_owners(inns):
+        for inn in inns:
+            try:
+                query = df.loc[(df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+                df.loc[df['INN'] == inn, 'owner'] = query.iloc[0,1]
+            except Exception:
+                continue
+
+    change_inn(df['owner'].unique().tolist())
+    change_owners(df['INN'].unique().tolist())
+
+    forms = {'ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ЗАО',
+                'ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ':'ИП',
+                'НЕПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'НПАО',
+                'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ':'ООО',
+                'ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ОАО',
+                'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ПАО',
+                'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ':'ФГБУ',
+                'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ГЕОЛОГИЧЕСКОЕ ПРЕДПРИЯТИЕ':'ФГУ ГП',
+                'АКЦИОНЕРНОЕ ОБЩЕСТВО':'АО',}
+
+    df['owner'] = df['owner'].str.upper()
+    for k, v in forms.items():
+        df['owner'] = df['owner'].str.replace(pat=k, repl=v)
 
     # STEP PREV_FORW_LIC-----------
     # Извлечение номеров предыдущих и будущих:
@@ -146,6 +173,22 @@ def construct_df(nested_data: dict):
     # Объединение датафрейма
     df = pd.merge(df, coords, how="left", left_index=True, right_index=True)
 
+    # Функция для извлечения радиан из столбцов N и E
+    def to_rads(value) -> float:
+
+        pattern = "(\d*)°(\d*)'(\d*\.*\d*)"
+        val = re.findall(pattern=pattern, string=value)[0]
+        return round(float(val[0]) + float(val[1])/60 + float(val[2])/3600, 5)
+
+    # Добавление столбцов
+    # Перевод координат град-мин-сек в радианы
+    df.loc[:,'rad_N'] = df['N'].map(arg=to_rads, na_action='ignore')
+    df.loc[:,'rad_E'] = df['E'].map(arg=to_rads, na_action='ignore')
+
+    #Добавление периодов
+    df.loc[:,'month'] = df['Дата лицензии'].dt.to_period('M')
+
+
     # STEP PREV_OWNER-----------
     # Добавление столбца предыдущего владельца лицензии
     df = df.loc[~df.index.duplicated(keep="last")]  # Убираем дубликаты из индекса
@@ -153,7 +196,7 @@ def construct_df(nested_data: dict):
     prev_owner_df = df.reset_index().set_index("forw_lic")
     prev_owner_df = prev_owner_df[prev_owner_df.index.notnull()]
     prev_owner_df = prev_owner_df[~prev_owner_df.index.duplicated(keep="last")][
-        "Наименоваение недропользователя"
+        "owner"
     ].rename("prev_owner")
 
     #TODO: Добавить выгрузку для столбца с будущим недропользователем
@@ -166,25 +209,6 @@ def construct_df(nested_data: dict):
     df = df[df["Дата лицензии"].notna()]
 
     #TODO: Сделать столбец с будущими владельцами.
-
-    # STEP PREV_NAMES-----------
-#!Замена названий участков может быть не точной.
-#
-#   for i in range(100):
-#        names_df = df.reset_index().set_index("prev_lic")
-#        names_df = names_df[names_df.index.notnull()]
-#
-#        # Лист лицензий из names_df:
-#        lst = names_df.index.unique().tolist()
-#        # Лист лицензий из основного ДФ у которых нет названий но есть названия в names_df:
-#        lst2 = df.index[
-#            df.index.isin(lst) & df["Наименование участка недр"].isna()
-#        ].tolist()
-#
-#        # Замена значений названий:
-#        df.loc[df.index.isin(lst2), ["Наименование участка недр"]] = names_df.loc[
-#            names_df.index.isin(lst2)
-#        ]
 
     df = (
         df[list(cols.keys())[1:]]
