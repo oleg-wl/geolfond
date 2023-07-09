@@ -9,7 +9,7 @@ import os
 
 # Файл с данными для запроса к сайту
 from src import queries
-from src.panda import construct_df, construct_pivot, save_in_excel, save_in_sql
+from src.panda import construct_df, save_in_excel, save_in_sql
 
 
 class ReestrRequest(object):
@@ -84,20 +84,6 @@ class ReestrRequest(object):
         """
         self.dataframe = construct_df(self.get_data_from_reestr())
         return self.dataframe
-
-class PivotMatrix(ReestrRequest):
-    # Класс объекта, который преобразуется в pivot для создания матрицы год-прерыдущая лицензия
-
-    def __init__(self, filt):
-        super().__init__(filt)
-
-    def pivoting(self):
-        self.create_df()
-
-        df = self.dataframe.reset_index()
-        self.piv_df = construct_pivot(df)
-
-        return self.piv_df
 
 class ReestrDatabase(ReestrRequest):
     # Класс для сохранения в базу данных sqlite3
