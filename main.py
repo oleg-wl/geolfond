@@ -9,8 +9,8 @@ import click
 from requests import request
 from art import tprint, art
 
-from app import ReestrRequest, dpath
-from src.panda import save_in_excel
+from app import ReestrRequest
+from src.panda import save_in_excel, path_to_desktop
 from src.queries import lfilt
 
 
@@ -20,7 +20,7 @@ def info():
     О программе
     """
     tprint("geolfond")
-    click.echo("2023 год. Загрузка открытых даных рфгф.")
+    click.echo("2023 год. Загрузка открытых даных РФРГ.")
 
 
 @click.command()
@@ -48,6 +48,7 @@ def download(filt: str):
 
     # Проверка подключения
     rcode = request(method="GET", url="https://rfgf.ru/ReestrLic/")
+    dpath = path_to_desktop()
 
     if int(rcode.status_code) == 200:
         try:

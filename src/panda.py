@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 import os
+import sys
 
 
 def construct_df(nested_data: dict):
@@ -9,27 +10,31 @@ def construct_df(nested_data: dict):
     Функция для создания пандас-датафрейма и обработки словаря, полученного после запроса к реестру. Возвращает датафрейм для сохранения.
     """
     # Переменные столбцов и типов для возврата датафрейма.
-    cols = [
-        "Дата лицензии",
-        "СубъектРФ",
-        "Вид полезного ископаемого",
-        "Наименование участка недр",
-        "Сведения о пользователе недр",
-        "INN",
-        "Наименоваение недропользователя",
-        "prev_owner",
-        "Last",
-        "Year",
+    cols = {
+        "Государственный регистрационный номер":'num',
+        "Дата лицензии":'date',
+        "СубъектРФ":'state',
+        "Вид полезного ископаемого":'type',
+        "Наименование участка недр":'name',
+        #"Сведения о пользователе недр",
+        "INN":"INN",
+        "owner":'owner',
+        "prev_owner":"prew_owner",
+        "Last":"Last",
+        "Year":"Year",
         #"Координаты",
-        "N", #Самая северная точка участка для определения применимости налоговых льгот
-        "E",
         #"Сведения о переоформлении лицензии на пользование недрами",
         #"Ранее выданные лицензии",
-        "prev_lic",
-        "prev_date",
-        "forw_lic",
-        "forw_date",
-    ]
+        "prev_lic":"prev_lic",
+        "prev_date":"prev_date",
+        "forw_lic":"forw_lic",
+        "forw_date":'forw_date',
+        "N":"N", #Самая северная точка участка для определения применимости налоговых льгот
+        "E":"E",
+        "rad_N":"rad_N",
+        "rad_E":"rad_E",
+        "month":"month"
+    }
     types = {
         "Дата лицензии": "datetime64[D]",
         "Last": "bool",
@@ -63,11 +68,12 @@ def construct_df(nested_data: dict):
         )
         .set_index("Государственный регистрационный номер")
     )
-
+    
     # выделение столбца ГОД
-    df["Year"] = pd.to_datetime(
+    df["Дата лицензии"] = pd.to_datetime(
         df["Дата лицензии"], format="%Y-%m-%d", yearfirst=True
-    ).dt.year  # Год лицензии
+    )
+    df["Year"] = df["Дата лицензии"].dt.year  # Год лицензии
     df["Last"] = np.where(
         df["Сведения о переоформлении лицензии на пользование недрами"].isna(),
         True,
@@ -84,11 +90,46 @@ def construct_df(nested_data: dict):
     df["INN"] = (
         df["INN"].astype(str, errors="ignore").str.replace(".0", "", regex=False)
     )
-    df["Наименоваение недропользователя"] = (
+    df["owner"] = (
         df["Сведения о пользователе недр"]
         .replace(pattern_for_replace_inn, "", regex=True)
         .str.strip()
     )
+
+# Функция для очистки данных о недропользователях
+# Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
+# Как праило это ликвидированные или реорганизованные недропользователи    
+    def change_inn(owners):
+        for owner in owners:
+            try:
+                query = df.loc[(df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+                df.loc[df['owner'] == owner, 'INN'] = query.iloc[0,0]
+            except Exception:
+                continue
+    def change_owners(inns):
+        for inn in inns:
+            try:
+                query = df.loc[(df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+                df.loc[df['INN'] == inn, 'owner'] = query.iloc[0,1]
+            except Exception:
+                continue
+
+    change_inn(df['owner'].unique().tolist())
+    change_owners(df['INN'].unique().tolist())
+
+    forms = {'ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ЗАО',
+                'ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ':'ИП',
+                'НЕПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'НПАО',
+                'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ':'ООО',
+                'ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ОАО',
+                'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ПАО',
+                'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ':'ФГБУ',
+                'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ГЕОЛОГИЧЕСКОЕ ПРЕДПРИЯТИЕ':'ФГУ ГП',
+                'АКЦИОНЕРНОЕ ОБЩЕСТВО':'АО',}
+
+    df['owner'] = df['owner'].str.upper()
+    for k, v in forms.items():
+        df['owner'] = df['owner'].str.replace(pat=k, repl=v)
 
     # STEP PREV_FORW_LIC-----------
     # Извлечение номеров предыдущих и будущих:
@@ -133,6 +174,22 @@ def construct_df(nested_data: dict):
     # Объединение датафрейма
     df = pd.merge(df, coords, how="left", left_index=True, right_index=True)
 
+    # Функция для извлечения радиан из столбцов N и E
+    def to_rads(value) -> float:
+
+        pattern = "(\d*)°(\d*)'(\d*\.*\d*)"
+        val = re.findall(pattern=pattern, string=value)[0]
+        return round(float(val[0]) + float(val[1])/60 + float(val[2])/3600, 5)
+
+    # Добавление столбцов
+    # Перевод координат град-мин-сек в радианы
+    df.loc[:,'rad_N'] = df['N'].map(arg=to_rads, na_action='ignore')
+    df.loc[:,'rad_E'] = df['E'].map(arg=to_rads, na_action='ignore')
+
+    #Добавление периодов
+    df.loc[:,'month'] = df['Дата лицензии'].dt.to_period('M')
+
+
     # STEP PREV_OWNER-----------
     # Добавление столбца предыдущего владельца лицензии
     df = df.loc[~df.index.duplicated(keep="last")]  # Убираем дубликаты из индекса
@@ -140,7 +197,7 @@ def construct_df(nested_data: dict):
     prev_owner_df = df.reset_index().set_index("forw_lic")
     prev_owner_df = prev_owner_df[prev_owner_df.index.notnull()]
     prev_owner_df = prev_owner_df[~prev_owner_df.index.duplicated(keep="last")][
-        "Наименоваение недропользователя"
+        "owner"
     ].rename("prev_owner")
 
     # Присоединение столбца с данными о предыдущих владельцах
@@ -149,102 +206,14 @@ def construct_df(nested_data: dict):
     )
     df = df[df["Дата лицензии"].notna()]
 
-    #TODO: Сделать столбец с будущими владельцами.
-
-    # STEP PREV_NAMES-----------
-    for i in range(100):
-        names_df = df.reset_index().set_index("prev_lic")
-        names_df = names_df[names_df.index.notnull()]
-
-        # Лист лицензий из names_df:
-        lst = names_df.index.unique().tolist()
-        # Лист лицензий из основного ДФ у которых нет названий но есть названия в names_df:
-        lst2 = df.index[
-            df.index.isin(lst) & df["Наименование участка недр"].isna()
-        ].tolist()
-
-        # Замена значений названий:
-        df.loc[df.index.isin(lst2), ["Наименование участка недр"]] = names_df.loc[
-            names_df.index.isin(lst2)
-        ]
-
     df = (
-        df[cols]
+        df[list(cols.keys())[1:]]
         .astype(dtype=types)
-        .where(
-            ~df.isnull(), ""
-        )  # заменить значения NaN на пустые для выгрузки в эксель
+        .where(~df.isnull(), "")
+        .reset_index()
+        .rename(columns=cols)
     )
     return df
-
-
-def construct_pivot(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Функция для создания матрицы ключей для связки с ГБЗ. Создает плоскую таблицу с столбцами год и номерами предыдущих лицензий.
-
-    :return pd.DataFrame: датафрейм для сохранения в эксель
-    """
-
-    # Создание датафрейма с номерами послединих лицензий
-    df_last = df[
-        [
-            "Наименование участка недр",
-            "Государственный регистрационный номер",
-            "Дата лицензии",
-            "Year",
-        ]
-    ][df.Last == True]
-    df_last["prev_lic"] = df_last["Государственный регистрационный номер"]
-
-    # Создание датафрейма для присоединения к мейну
-    df_last_pivoted = (
-        df_last.pivot(
-            index=[
-                "Наименование участка недр",
-                "Государственный регистрационный номер",
-                "Дата лицензии",
-            ],
-            columns=["Year"],
-        )["prev_lic"]
-        .sort_values(by=["Year"], axis=1, ascending=False)
-        .bfill(axis=1)
-        .ffill(axis=1)
-    )
-
-    # Создание основного датафрейма для лицензий
-    df_main = df[
-        [
-            "Наименование участка недр",
-            "Государственный регистрационный номер",
-            "Дата лицензии",
-            "Year",
-            "prev_lic",
-        ]
-    ].sort_values("Year", ascending=False)
-
-    # добавление "_" к значению
-    df_main["prev_lic"] = df_main["prev_lic"].apply(
-        lambda x: "_" + x if type(x) is str else np.nan
-    )
-
-    # Создание пивот-датафрейма с столбцами в убывающем порядке
-    df_pivoted = (
-        df_main.pivot(
-            index=[
-                "Наименование участка недр",
-                "Государственный регистрационный номер",
-                "Дата лицензии",
-            ],
-            columns=["Year"],
-        )["prev_lic"]
-        .sort_values(by=["Year"], axis=1, ascending=False)
-        .ffill(axis=1)
-    )
-
-    # Объединение датафреймов main и last. Датафрейм last это дополнительная строка последнеей записи в реестре
-    df_concat = pd.concat([df_pivoted, df_last_pivoted]).sort_index(level=[0, 2])
-
-    return df_concat
 
 
 def save_in_sql(table, df: pd.DataFrame, connect: str):
@@ -281,3 +250,13 @@ def save_in_excel(path: str, dataframe_to_save: pd.DataFrame, name_for_sheet: st
             freeze_panes=(1, 0),
             na_rep="",
         )
+
+def path_to_desktop():
+    # Функция для определения пути сохранения файла на рабочий стол в зависимости от ОС
+
+    ostype = sys.platform
+    if "win" in ostype:
+        desktop = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
+    else:
+        desktop = os.path.expanduser("~")
+    return desktop

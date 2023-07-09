@@ -4,13 +4,12 @@
 import requests
 import sqlite3
 import os
-import sys
 
 # requests.packages.urllib3.disable_warnings() #отключить ошибку SSL-сертификата
 
 # Файл с данными для запроса к сайту
 from src import queries
-from src.panda import construct_df, construct_pivot, save_in_excel, save_in_sql
+from src.panda import construct_df, save_in_excel, save_in_sql
 
 
 class ReestrRequest(object):
@@ -86,36 +85,6 @@ class ReestrRequest(object):
         self.dataframe = construct_df(self.get_data_from_reestr())
         return self.dataframe
 
-
-def path_to_desktop():
-    # Функция для определения пути сохранения файла на рабочий стол в зависимости от ОС
-
-    ostype = sys.platform
-    if "win" in ostype:
-        desktop = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
-    else:
-        desktop = os.path.expanduser("~")
-    return desktop
-
-
-dpath = path_to_desktop()
-
-
-class PivotMatrix(ReestrRequest):
-    # Класс объекта, который преобразуется в pivot для создания матрицы год-прерыдущая лицензия
-
-    def __init__(self, filt):
-        super().__init__(filt)
-
-    def pivoting(self):
-        self.create_df()
-
-        df = self.dataframe.reset_index()
-        self.piv_df = construct_pivot(df)
-
-        return self.piv_df
-
-
 class ReestrDatabase(ReestrRequest):
     # Класс для сохранения в базу данных sqlite3
 
@@ -138,12 +107,8 @@ class ReestrDatabase(ReestrRequest):
 if __name__ == "__main__":
     # Запуск для автоматической выгрузки по нефти или дебаггинга
 
-    filepath = os.path.join(dpath, "reestr_pivot.xlsx")
+    #filepath = os.path.join(dpath, "reestr_pivot.xlsx")
 
-    r1 = ReestrRequest(queries.lfilt["oil"])
-    save_in_excel(filepath, r1.create_df(), "reestr_oil")
+    reestr = ReestrRequest(queries.lfilt["oil"])
+    save_in_excel('data.xlsx', reestr.create_df(), "reestr_oil")
 
-    r2 = PivotMatrix(queries.lfilt["oil"])
-    save_in_excel(filepath, r2.pivoting(), "Licensoins_pivot")
-
-    r3 = ReestrDatabase(queries.lfilt["oil"])
