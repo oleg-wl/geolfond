@@ -4,7 +4,6 @@
 import requests
 import sqlite3
 import os
-import sys
 
 # requests.packages.urllib3.disable_warnings() #отключить ошибку SSL-сертификата
 
@@ -85,21 +84,6 @@ class ReestrRequest(object):
         """
         self.dataframe = construct_df(self.get_data_from_reestr())
         return self.dataframe
-
-
-def path_to_desktop():
-    # Функция для определения пути сохранения файла на рабочий стол в зависимости от ОС
-
-    ostype = sys.platform
-    if "win" in ostype:
-        desktop = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
-    else:
-        desktop = os.path.expanduser("~")
-    return desktop
-
-
-dpath = path_to_desktop()
-
 
 class PivotMatrix(ReestrRequest):
     # Класс объекта, который преобразуется в pivot для создания матрицы год-прерыдущая лицензия

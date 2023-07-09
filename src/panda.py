@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 import os
+import sys
 
 
 def construct_df(nested_data: dict):
@@ -323,3 +324,13 @@ def save_in_excel(path: str, dataframe_to_save: pd.DataFrame, name_for_sheet: st
             freeze_panes=(1, 0),
             na_rep="",
         )
+
+def path_to_desktop():
+    # Функция для определения пути сохранения файла на рабочий стол в зависимости от ОС
+
+    ostype = sys.platform
+    if "win" in ostype:
+        desktop = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
+    else:
+        desktop = os.path.expanduser("~")
+    return desktop
