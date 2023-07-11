@@ -9,11 +9,12 @@ import os
 # requests.packages.urllib3.disable_warnings() #отключить ошибку SSL-сертификата
 
 #Настройки для прокси через российский VDS
-proxy_host = 'localhost'
-proxy_port = 4444
+proxy_host = os.environ.get('PROXY_HOST')
+proxy_port = os.environ.get('PROXY_PORT')
 
-socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
-socket = socks.socksocket
+if proxy_host is not None and proxy_port is not None:
+    socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+    socket = socks.socksocket
 
 # Файл с данными для запроса к сайту
 from src import queries
