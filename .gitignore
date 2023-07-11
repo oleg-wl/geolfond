@@ -1,7 +1,6 @@
 #local
 .vscode
 *xlsx
-!data.xlsx
 prox*
 
 # Byte-compiled / optimized / DLL files
