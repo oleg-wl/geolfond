@@ -2,10 +2,18 @@
 # -*- coding=utf-8 -*-
 
 import requests
+import socks
 import sqlite3
 import os
 
 # requests.packages.urllib3.disable_warnings() #отключить ошибку SSL-сертификата
+
+#Настройки для прокси через российский VDS
+proxy_host = 'localhost'
+proxy_port = 4444
+
+socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+socket = socks.socksocket
 
 # Файл с данными для запроса к сайту
 from src import queries
@@ -22,6 +30,8 @@ class ReestrRequest(object):
 
         self.session = requests.Session()
         self.session.verify = cert
+        if socket:
+            self.session.proxies = {'https': f'socks5://{proxy_host}:{proxy_port}'}
 
         # Переменная фильтра
         self.filt = filt
