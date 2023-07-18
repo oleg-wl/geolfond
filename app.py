@@ -121,5 +121,5 @@ if __name__ == "__main__":
     #filepath = os.path.join(dpath, "reestr_pivot.xlsx")
 
     reestr = ReestrRequest(queries.lfilt["oil"])
-    save_in_excel('data.xlsx', reestr.create_df(), "reestr_oil")
+    save_in_excel('/var/www/lordcrabov.ru/public_html/data.xlsx', reestr.create_df(), "reestr_oil")
 
