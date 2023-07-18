@@ -8,13 +8,21 @@ import os
 
 # requests.packages.urllib3.disable_warnings() #отключить ошибку SSL-сертификата
 
-#Настройки для прокси через российский VDS
-proxy_host = os.environ.get('PROXY_HOST')
-proxy_port = os.environ.get('PROXY_PORT')
+if os.path.exists("config.ini"):
+    from configparser import ConfigParser
 
-if proxy_host is not None and proxy_port is not None:
-    socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
-    socket = socks.socksocket
+    config = ConfigParser()
+    config.read("config.ini")
+
+    # Настройки для прокси через российский VDS
+    if "PROXY" in config:
+        proxy_host = config["PROXY"]["proxy_host"]
+        proxy_port = config["PROXY"]["proxy_port"]
+
+        socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+        socket = socks.socksocket
+
+
 
 # Файл с данными для запроса к сайту
 from src import queries
@@ -31,8 +39,8 @@ class ReestrRequest(object):
 
         self.session = requests.Session()
         self.session.verify = cert
-        if socket:
-            self.session.proxies = {'https': f'socks5://{proxy_host}:{proxy_port}'}
+        if "socket" in locals() or "socket" in globals():
+            self.session.proxies = {"https": f"socks5://{proxy_host}:{proxy_port}"}
 
         # Переменная фильтра
         self.filt = filt
@@ -96,6 +104,7 @@ class ReestrRequest(object):
         self.dataframe = construct_df(self.get_data_from_reestr())
         return self.dataframe
 
+
 class ReestrDatabase(ReestrRequest):
     # Класс для сохранения в базу данных sqlite3
 
@@ -118,8 +127,9 @@ class ReestrDatabase(ReestrRequest):
 if __name__ == "__main__":
     # Запуск для автоматической выгрузки по нефти или дебаггинга
 
-    #filepath = os.path.join(dpath, "reestr_pivot.xlsx")
+    # filepath = os.path.join(dpath, "reestr_pivot.xlsx")
 
     reestr = ReestrRequest(queries.lfilt["oil"])
-    save_in_excel('/var/www/lordcrabov.ru/public_html/data.xlsx', reestr.create_df(), "reestr_oil")
-
+    save_in_excel(
+        "/var/www/lordcrabov.ru/public_html/data.xlsx", reestr.create_df(), "reestr_oil"
+    )

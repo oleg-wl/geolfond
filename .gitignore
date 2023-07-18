@@ -3,6 +3,8 @@
 *xlsx
 prox*
 run.sh
+config.ini
+!example.*.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
