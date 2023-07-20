@@ -4,226 +4,216 @@ import re
 import os
 import sys
 
+from app import ReestrRequest
 
-def construct_df(nested_data: dict):
-    """
-    Функция для создания пандас-датафрейма и обработки словаря, полученного после запроса к реестру. Возвращает датафрейм для сохранения.
-    """
-    # Переменные столбцов и типов для возврата датафрейма.
-    cols = {
-        "Государственный регистрационный номер":'num',
-        "Дата лицензии":'date',
-        "СубъектРФ":'state',
-        "Вид полезного ископаемого":'type',
-        "Наименование участка недр":'name',
-        #"Сведения о пользователе недр",
-        "INN":"INN",
-        "owner":'owner',
-        "prev_owner":"prew_owner",
-        "Last":"Last",
-        "Year":"Year",
-        #"Координаты",
-        #"Сведения о переоформлении лицензии на пользование недрами",
-        #"Ранее выданные лицензии",
-        "prev_lic":"prev_lic",
-        "prev_date":"prev_date",
-        "forw_lic":"forw_lic",
-        "forw_date":'forw_date',
-        "N":"N", #Самая северная точка участка для определения применимости налоговых льгот
-        "E":"E",
-        "rad_N":"rad_N",
-        "rad_E":"rad_E",
-        "month":"month"
-    }
-    types = {
-        "Дата лицензии": "datetime64[D]",
-        "Last": "bool",
-        "N": "str",
-        "E": "str",
-        "prev_lic": "str",
-        "prev_date": "datetime64[D]",
-        "forw_lic": "str",
-        "forw_date": "datetime64[D]",
-        "Наименование участка недр": "str",
-        "Вид полезного ископаемого": "str",
-        "СубъектРФ": "str",
-        "INN": "str",
-        "Year": "int",
-    }
+class ReestrData(ReestrRequest):
+    def __init__(self):
+        super().__init__()
 
-    df = (
-        pd.DataFrame(nested_data)
-        .rename(
-            columns={
-                "Дата": "Дата лицензии",
-                "Дата.1": "Дата прекращения лицензии",
-                "Дата.2": "Дата окончания лицензии",
-                "Географические координаты угловых точек участка недр, верхняя и нижняя границы участка недр": "Координаты",
-                "Наименование органа, выдавшего лицензию": "Орган",
-                "Сведения о реестровых записях в отношении ранее выданных лицензий на пользование соответствующим участком недр": "Ранее выданные лицензии",
-                "Реквизиты приказа о прекращении права пользования недрами, приостановлении или ограничении права пользования недрами": "Реквизиты прекращения, приостановления, ограничения",
-                "Наименование участка недр, предоставленного в пользование по лицензии, кадастровый номер месторождения или проявления полезных ископаемых в ГКМ": "Наименование участка недр",
-                "Наименование субъекта Российской Федерации или иной территории, на которой расположен участок недр": "СубъектРФ",
+        self.config()
+        self.get_data_from_reestr()
+        self.df = pd.DataFrame(data=self.vals)
+
+
+    def create_df(self):
+        """
+        Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
+        """
+        # Переименовать столбцы
+        cols = {
+            'Государственный регистрационный номер':'num',
+            'Дата':'date',
+            'Вид полезного ископаемого':'type',
+            'Наименование субъекта Российской Федерации или иной территории, на которой расположен участок недр':'state',
+            'Наименование участка недр, предоставленного в пользование по лицензии, кадастровый номер месторождения или проявления полезных ископаемых в ГКМ':'name',
+            #дропнуть
+            'Сведения о пользователе недр':'owner_full',
+            'Географические координаты угловых точек участка недр, верхняя и нижняя границы участка недр':'coords',
+            'Сведения о переоформлении лицензии на пользование недрами':'forw_full',
+            'Сведения о реестровых записях в отношении ранее выданных лицензий на пользование соответствующим участком недр':'prew_full',
+            'Реквизиты документа, на основании которого выдана лицензия на пользование недрами':'doc_details',
+            'Наименование органа, выдавшего лицензию':'agency',
+            'Статус участка недр':'status',
+            'Целевое назначение лицензии':'purpose',
+            'Наличие полного электронного образа':'image',
+            'Ссылка на карточку лицензии':'link',
+            'Сведения о внесении изменений и дополнений в лицензию на пользование недрами, сведения о наличии их электронных образов':'changes',
+            'Реквизиты приказа о прекращении права пользования недрами, приостановлении или ограничении права пользования недрами':'order',
+            'Дата.1':'date_stop',
+            'Дата.2':'date_end',
+            'Срок и условия приостановления или ограничения права пользования недрами':'stop_end_conditions',
+            'Ссылка на АСЛН':'link_alsn'
             }
+        types = {
+            "date": "datetime64[D]",
+            "Last": "bool",
+            "N": "str",
+            "E": "str",
+            "prev_lic": "str",
+            "prev_date": "datetime64[D]",
+            "forw_lic": "str",
+            "forw_date": "datetime64[D]",
+            "name": "str",
+            "type": "str",
+            "state": "str",
+            "INN": "str",
+            "Year": "int",
+        }
+        
+        self.df = self.df.rename(columns=cols).set_index("num")
+        
+        # выделение столбца ГОД
+        self.df["date"] = pd.to_datetime(
+            self.df["date"], format="%Y-%m-%d", yearfirst=True
         )
-        .set_index("Государственный регистрационный номер")
-    )
-    
-    # выделение столбца ГОД
-    df["Дата лицензии"] = pd.to_datetime(
-        df["Дата лицензии"], format="%Y-%m-%d", yearfirst=True
-    )
-    df["Year"] = df["Дата лицензии"].dt.year  # Год лицензии
-    df["Last"] = np.where(
-        df["Сведения о переоформлении лицензии на пользование недрами"].isna(),
-        True,
-        False,
-    )  # Условный столбец последняя лицензия
+        self.df["Year"] = self.df["date"].dt.year  # Год лицензии
 
-    # STEP INN-----------
-    # Извлечение ИНН:
-    # Паттерны regrex
-    pattern_for_inn = "([\d{10}|\d{12}]+)"
-    pattern_for_replace_inn = "(\(ИНН.*\)$)"
+        # Условный столбец последняя лицензия
+        self.df["Last"] = np.where(
+            self.df['forw_full'].isna(),
+            True,
+            False,
+        )  
 
-    df["INN"] = df["Сведения о пользователе недр"].str.extract(pattern_for_inn)
-    df["INN"] = (
-        df["INN"].astype(str, errors="ignore").str.replace(".0", "", regex=False)
-    )
-    df["owner"] = (
-        df["Сведения о пользователе недр"]
-        .replace(pattern_for_replace_inn, "", regex=True)
-        .str.strip()
-    )
+        # Извлечение ИНН:
+        # Паттерны regrex
+        pattern_for_inn = "([\d{10}|\d{12}]+)"
+        pattern_for_replace_inn = "(\(ИНН.*\)$)"
 
-# Функция для очистки данных о недропользователях
-# Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
-# Как праило это ликвидированные или реорганизованные недропользователи    
-    def change_inn(owners):
-        for owner in owners:
-            try:
-                query = df.loc[(df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
-                df.loc[df['owner'] == owner, 'INN'] = query.iloc[0,0]
-            except Exception:
-                continue
-    def change_owners(inns):
-        for inn in inns:
-            try:
-                query = df.loc[(df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
-                df.loc[df['INN'] == inn, 'owner'] = query.iloc[0,1]
-            except Exception:
-                continue
+        self.df["INN"] = self.df["owner_full"].str.extract(pattern_for_inn)
+        self.df["INN"] = (
+            self.df["INN"].astype(str, errors="ignore").str.replace(".0", "", regex=False)
+        )
+        self.df["owner"] = (
+            self.df["owner_full"]
+            .replace(pattern_for_replace_inn, "", regex=True)
+            .str.strip()
+        )
 
-    change_inn(df['owner'].unique().tolist())
-    change_owners(df['INN'].unique().tolist())
+    # Функция для очистки данных о недропользователях
+    # Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
+    # Как праило это ликвидированные или реорганизованные недропользователи    
+        def change_inn(owners):
+            for owner in owners:
+                try:
+                    query = self.df.loc[(self.df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+                    self.df.loc[self.df['owner'] == owner, 'INN'] = query.iloc[0,0]
+                except Exception:
+                    continue
+        def change_owners(inns):
+            for inn in inns:
+                try:
+                    query = self.df.loc[(self.df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+                    self.df.loc[self.df['INN'] == inn, 'owner'] = query.iloc[0,1]
+                except Exception:
+                    continue
 
-    forms = {'ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ЗАО',
-                'ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ':'ИП',
-                'НЕПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'НПАО',
-                'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ':'ООО',
-                'ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ОАО',
-                'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ПАО',
-                'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ':'ФГБУ',
-                'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ГЕОЛОГИЧЕСКОЕ ПРЕДПРИЯТИЕ':'ФГУ ГП',
-                'АКЦИОНЕРНОЕ ОБЩЕСТВО':'АО',}
+        change_inn(self.df['owner'].unique().tolist())
+        change_owners(self.df['INN'].unique().tolist())
 
-    df['owner'] = df['owner'].str.upper()
-    for k, v in forms.items():
-        df['owner'] = df['owner'].str.replace(pat=k, repl=v)
+        forms = {'ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ЗАО',
+                    'ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ':'ИП',
+                    'НЕПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'НПАО',
+                    'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ':'ООО',
+                    'ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ОАО',
+                    'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ПАО',
+                    'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ':'ФГБУ',
+                    'ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ГЕОЛОГИЧЕСКОЕ ПРЕДПРИЯТИЕ':'ФГУ ГП',
+                    'АКЦИОНЕРНОЕ ОБЩЕСТВО':'АО',}
 
-    # STEP PREV_FORW_LIC-----------
-    # Извлечение номеров предыдущих и будущих:
-    pattern_for_lic = (
-        "([А-Я]+[0-9]+[-А-Я]+)"  # Паттерн для извлечения номера ранее выданной лицензии
-    )
-    pattern_for_date = (
-        "([\d\.]+$)"  # Паттерн для извлечения даты ранее выданной лицензии
-    )
+        self.df['owner'] = self.df['owner'].str.upper()
+        for k, v in forms.items():
+            self.df['owner'] = self.df['owner'].str.replace(pat=k, repl=v)
 
-    # Извлечение данных предыдущих лицензий
-    df["prev_lic"] = df["Ранее выданные лицензии"].str.extract(pattern_for_lic)
-    df["prev_date"] = df["Ранее выданные лицензии"].str.extract(pattern_for_date)
-    df["prev_date"] = pd.to_datetime(
-        df["prev_date"], format="%d.%m.%Y", errors="ignore", dayfirst=True
-    )
+        # STEP PREV_FORW_LIC
+        # Извлечение номеров предыдущих и будущих:
+        pattern_for_lic = (
+            "([А-Я]+[0-9]+[-А-Я]+)"  # Паттерн для извлечения номера ранее выданной лицензии
+        )
+        pattern_for_date = (
+            "([\d\.]+$)"  # Паттерн для извлечения даты ранее выданной лицензии
+        )
 
-    # Извлечение данных будущих лицензий
-    df["forw_lic"] = df[
-        "Сведения о переоформлении лицензии на пользование недрами"
-    ].str.extract(pattern_for_lic)
-    df["forw_date"] = df[
-        "Сведения о переоформлении лицензии на пользование недрами"
-    ].str.extract(pattern_for_date)
-    df["forw_date"] = pd.to_datetime(
-        df["forw_date"], format="%d.%m.%Y", errors="ignore", dayfirst=True
-    )
+        # Извлечение данных предыдущих лицензий
+        self.df["prev_lic"] = self.df["prew_full"].str.extract(pattern_for_lic)
+        self.df["prev_date"] = self.df["prew_full"].str.extract(pattern_for_date)
+        self.df["prev_date"] = pd.to_datetime(
+            self.df["prev_date"], format="%d.%m.%Y", errors="ignore", dayfirst=True
+        )
 
-    # STEP COORDS-----------
-    # Извлечение координат:
-    # Паттерн regrex
-    pattern_coord = "(?P<N>\d*°\d*'[\d\.]+\"N)(?: *)(?P<E>[\d-]*°\d*'[\d\.]+\"[E|Е])"
+        # Извлечение данных будущих лицензий
+        self.df["forw_lic"] = self.df[
+        :'forw_full'
+        ].str.extract(pattern_for_lic)
+        self.df["forw_date"] = self.df[
+        :'forw_full'
+        ].str.extract(pattern_for_date)
+        self.df["forw_date"] = pd.to_datetime(
+            self.df["forw_date"], format="%d.%m.%Y", errors="ignore", dayfirst=True
+        )
 
-    coords = (
-        df["Координаты"]
-        .str.extractall(pattern_coord, re.MULTILINE)
-        .sort_values(by="N", ascending=False)
-        .droplevel(1)
-    )
-    coords = coords[coords.index.duplicated(keep="first") == False]
+        # STEP COORDS
+        # Извлечение координат:
+        # Паттерн regrex
+        pattern_coord = "(?P<N>\d*°\d*'[\d\.]+\"N)(?: *)(?P<E>[\d-]*°\d*'[\d\.]+\"[E|Е])"
 
-    # Объединение датафрейма
-    df = pd.merge(df, coords, how="left", left_index=True, right_index=True)
+        coords = (
+            self.df['coords']
+            .str.extractall(pattern_coord, re.MULTILINE)
+            .sort_values(by="N", ascending=False)
+            .droplevel(1)
+        )
+        coords = coords[coords.index.duplicated(keep="first") == False]
 
-    # Функция для извлечения радиан из столбцов N и E
-    def to_rads(value) -> float:
+        # Объединение датафрейма
+        self.df = pd.merge(self.df, coords, how="left", left_index=True, right_index=True)
 
-        pattern = "(\d*)°(\d*)'(\d*\.*\d*)"
-        val = re.findall(pattern=pattern, string=value)[0]
-        return round(float(val[0]) + float(val[1])/60 + float(val[2])/3600, 5)
+        # Функция для извлечения радиан из столбцов N и E
+        def to_rads(value) -> float:
 
-    # Добавление столбцов
-    # Перевод координат град-мин-сек в радианы
-    df.loc[:,'rad_N'] = df['N'].map(arg=to_rads, na_action='ignore')
-    df.loc[:,'rad_E'] = df['E'].map(arg=to_rads, na_action='ignore')
+            pattern = "(\d*)°(\d*)'(\d*\.*\d*)"
+            val = re.findall(pattern=pattern, string=value)[0]
+            return round(float(val[0]) + float(val[1])/60 + float(val[2])/3600, 5)
 
-    #Добавление периодов
-    df.loc[:,'month'] = df['Дата лицензии'].dt.to_period('M')
+        # Добавление столбцов
+        # Перевод координат град-мин-сек в радианы
+        self.df.loc[:,'rad_N'] = self.df['N'].map(arg=to_rads, na_action='ignore')
+        self.df.loc[:,'rad_E'] = self.df['E'].map(arg=to_rads, na_action='ignore')
+
+        #Добавление периодов
+        self.df.loc[:,'month'] = self.df['date'].dt.to_period('M')
 
 
-    # STEP PREV_OWNER-----------
-    # Добавление столбца предыдущего владельца лицензии
-    df = df.loc[~df.index.duplicated(keep="last")]  # Убираем дубликаты из индекса
+        # STEP PREV_OWNER
+        # Добавление столбца предыдущего владельца лицензии
+        self.df = self.df.loc[~self.df.index.duplicated(keep="last")]  # Убираем дубликаты из индекса
 
-    prev_owner_df = df.reset_index().set_index("forw_lic")
-    prev_owner_df = prev_owner_df[prev_owner_df.index.notnull()]
-    prev_owner_df = prev_owner_df[~prev_owner_df.index.duplicated(keep="last")][
-        "owner"
-    ].rename("prev_owner")
+        prev_owner_df = self.df.reset_index().set_index("forw_lic")
+        prev_owner_df = prev_owner_df[prev_owner_df.index.notnull()]
+        prev_owner_df = prev_owner_df[~prev_owner_df.index.duplicated(keep="last")][
+            "owner"
+        ].rename("prev_owner")
 
-    # Присоединение столбца с данными о предыдущих владельцах
-    df = pd.concat([df, prev_owner_df], axis=1, join="outer").rename_axis(
-        "Государственный регистрационный номер"
-    )
-    df = df[df["Дата лицензии"].notna()]
+        # Присоединение столбца с данными о предыдущих владельцах
+        self.df = pd.concat([self.df, prev_owner_df], axis=1, join="outer").rename_axis(
+            "num"
+        )
+        self.df = self.df[self.df["date"].notna()]
 
-    df = (
-        df[list(cols.keys())[1:]]
-        .astype(dtype=types)
-        .where(~df.isnull(), "")
-        .reset_index()
-        .rename(columns=cols)
-    )
-    return df
+        self.df = (self.df.drop(columns=[list(cols.values())[5:]])
+            .astype(dtype=types)
+            .where(~self.df.isnull(), "")
+            .reset_index()
+        )
 
+    def save(self):
 
-def save_in_sql(table, df: pd.DataFrame, connect: str):
-    df = (
-        df.reset_index()
-        .astype(dtype="str")
-        .to_sql(name=table, con=connect, if_exists="replace")
-    )
+        excel_path = os.path.join(self.path, f'data_{self.filter}.json')
+        json_path = os.path.join(self.path, f'data_{self.filter}.xlsx')
 
-
+        self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
+        self.df.to_json(path_or_buf=json_path, compression='zip', indent=4)
+        
 def save_in_excel(path: str, dataframe_to_save: pd.DataFrame, name_for_sheet: str):
     """
     Функция для сохранения в определенный лист экселя
@@ -260,3 +250,7 @@ def path_to_desktop():
     else:
         desktop = os.path.expanduser("~")
     return desktop
+
+if __name__ == "__main__":
+    x = ReestrData().create_df()
+    x.save()

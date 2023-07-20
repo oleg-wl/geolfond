@@ -1,10 +1,12 @@
 #local
 .vscode
-*xlsx
+*.xlsx
+*.json
 prox*
 run.sh
 config.ini
 !example.*.ini
+*.pem
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
