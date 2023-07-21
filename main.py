@@ -4,13 +4,12 @@
 """
 Запуск программы из консоли с выводом информации в консоль
 """
-import os
+
 import click
 from requests import request
 from art import tprint, art
 
-from app import ReestrRequest
-from src.panda import save_in_excel, path_to_desktop
+from src.panda import ReestrData
 from src.queries import lfilt
 
 
@@ -35,50 +34,42 @@ def filters():
 @click.command()
 @click.option(
     "-f",
-    "--filt",
+    "--filter",
     default="oil",
     type=str,
     show_default=True,
     help="Укажи значение фильтра из команды filter",
 )
-def download(filt: str):
+def download(filter: str):
     """
     Скачать данные c реестра
     """
 
     # Проверка подключения
     rcode = request(method="GET", url="https://rfgf.ru/ReestrLic/")
-    dpath = path_to_desktop()
 
     if int(rcode.status_code) == 200:
         try:
             # Получение данных
             click.echo("Погнали... {n}\n".format(n=art("rand")))
             click.echo("Загрузка данных...")
-            requested_data = ReestrRequest(lfilt[filt])
-            data = requested_data.create_df()
-
+            data = ReestrData(str(filter))
+            
             # Вывод в консоль
             n = sum(
                 x is None
-                for x in requested_data.nested_data[
+                for x in data.data[
                     "Сведения о переоформлении лицензии на пользование недрами"
                 ]
-            ), len(requested_data.nested_data["Дата"])
+            ), len(data.data["Дата"])
             click.echo(
-                "Данные загружены успешно. Количество записей: {:d}. Действующих лицензий: {:d}.".format(
+                "Данные загружены успешно. Всего лицензий: {:d}. Действующих лицензий: {:d}.".format(
                     n[1], n[0]
                 )
             )
-            click.echo("Обработка данных...")
-
-            # Проверка целостности выгружаемых данных
-            click.echo("Сохранение данных...")
-
-            # Сохренение в excel
-            desk = os.path.join(dpath, f"reestr_{filt}.xlsx")
-            save_in_excel(path=desk, dataframe_to_save=data, name_for_sheet=filt)
-            click.echo("Выгрузка завершена. Данные сохранены в {}".format(desk))
+            click.echo(f"Сохранение данных в {data.path}")
+            data.save()
+            click.echo("Успех {n}\n".format(n=art("rock on2")))
 
         except Exception as e:
             click.echo(f"Error: {e}")

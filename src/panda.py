@@ -4,7 +4,7 @@ import re
 import os
 import sys
 
-from app import ReestrRequest
+from src.app import ReestrRequest
 
 class ReestrData(ReestrRequest):
     def __init__(self):
@@ -12,7 +12,7 @@ class ReestrData(ReestrRequest):
 
         self.config()
         self.get_data_from_reestr()
-        self.df = pd.DataFrame(data=self.vals)
+        self.df = pd.DataFrame(data=self.data)
 
 
     def create_df(self):

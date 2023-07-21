@@ -5,7 +5,7 @@ import requests
 import socks
 import os
 
-import queries
+import src.queries as queries
 
 
 class ReestrRequest(object):
@@ -87,7 +87,8 @@ class ReestrRequest(object):
         response["result"]["data"]["cols"][18] = ["Дата.2"]
 
         cols = [v[0] for v in response["result"]["data"]["cols"]]
-        self.vals = {k:v for k in cols for v in response["result"]["data"]["values"]}
+        vals = response["result"]["data"]["values"]
+        self.data = dict(zip(cols, vals))
 
 
 
