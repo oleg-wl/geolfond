@@ -3,6 +3,7 @@
 
 import requests
 import socks
+import socket
 import os
 
 import src.queries as queries
@@ -34,7 +35,7 @@ class ReestrRequest(object):
                 proxy_port = config["PROXY"]["proxy_port"]
 
                 socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
-                socks.socksocket
+                socket.socket = socks.socksocket
                 self.session.proxies = {"https": f"socks5://{proxy_host}:{proxy_port}"}
 
             # Настройка SSL

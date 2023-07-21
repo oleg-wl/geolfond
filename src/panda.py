@@ -7,8 +7,8 @@ import sys
 from src.app import ReestrRequest
 
 class ReestrData(ReestrRequest):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, filter='oil'):
+        super().__init__(filter='oil')
 
         self.config()
         self.get_data_from_reestr()
@@ -142,12 +142,8 @@ class ReestrData(ReestrRequest):
         )
 
         # Извлечение данных будущих лицензий
-        self.df["forw_lic"] = self.df[
-        :'forw_full'
-        ].str.extract(pattern_for_lic)
-        self.df["forw_date"] = self.df[
-        :'forw_full'
-        ].str.extract(pattern_for_date)
+        self.df["forw_lic"] = self.df['forw_full'].str.extract(pattern_for_lic)
+        self.df["forw_date"] = self.df['forw_full'].str.extract(pattern_for_date)
         self.df["forw_date"] = pd.to_datetime(
             self.df["forw_date"], format="%d.%m.%Y", errors="ignore", dayfirst=True
         )
@@ -200,19 +196,20 @@ class ReestrData(ReestrRequest):
         )
         self.df = self.df[self.df["date"].notna()]
 
-        self.df = (self.df.drop(columns=[list(cols.values())[5:]])
+        self.df = (self.df.drop(columns=list(cols.values())[5:])
             .astype(dtype=types)
             .where(~self.df.isnull(), "")
             .reset_index()
         )
 
     def save(self):
-
-        excel_path = os.path.join(self.path, f'data_{self.filter}.json')
-        json_path = os.path.join(self.path, f'data_{self.filter}.xlsx')
+        self.create_df()
+        
+        excel_path = os.path.join(self.path, f'data_{self.filter}.xlsx')
+        json_path = os.path.join(self.path, f'data_{self.filter}.json.zip')
 
         self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
-        self.df.to_json(path_or_buf=json_path, compression='zip', indent=4)
+        self.df.to_json(path_or_buf=json_path, indent=4, compression='zip')
         
 def save_in_excel(path: str, dataframe_to_save: pd.DataFrame, name_for_sheet: str):
     """
@@ -252,5 +249,5 @@ def path_to_desktop():
     return desktop
 
 if __name__ == "__main__":
-    x = ReestrData().create_df()
+    x = ReestrData()
     x.save()

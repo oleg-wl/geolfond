@@ -6,7 +6,7 @@
 """
 
 import click
-from requests import request
+import requests
 from art import tprint, art
 
 from src.panda import ReestrData
@@ -44,39 +44,29 @@ def download(filter: str):
     """
     Скачать данные c реестра
     """
+    click.echo("Погнали... {n}".format(n=art("rand")))
+    click.echo("Загрузка данных...")
 
-    # Проверка подключения
-    rcode = request(method="GET", url="https://rfgf.ru/ReestrLic/")
-
-    if int(rcode.status_code) == 200:
-        try:
-            # Получение данных
-            click.echo("Погнали... {n}\n".format(n=art("rand")))
-            click.echo("Загрузка данных...")
-            data = ReestrData(str(filter))
-            
-            # Вывод в консоль
-            n = sum(
-                x is None
-                for x in data.data[
-                    "Сведения о переоформлении лицензии на пользование недрами"
-                ]
+    try:
+        data = ReestrData(filter)
+        n = sum(x is None for x in data.data["Сведения о переоформлении лицензии на пользование недрами"]
             ), len(data.data["Дата"])
-            click.echo(
-                "Данные загружены успешно. Всего лицензий: {:d}. Действующих лицензий: {:d}.".format(
+        click.echo("Данные загружены успешно. Всего лицензий: {:d}. Действующих лицензий: {:d}.".format(
                     n[1], n[0]
                 )
             )
-            click.echo(f"Сохранение данных в {data.path}")
-            data.save()
-            click.echo("Успех {n}\n".format(n=art("rock on2")))
+        click.echo(f"Сохранение данных в {data.path}")
+        data.save()
+        click.echo("Успех {n}\n".format(n=art("rock on2")))
 
-        except Exception as e:
-            click.echo(f"Error: {e}")
-    else:
-        click.echo(
-            "Что-то не так с подключением. Ошибка: {status}.".format(status=rcode)
-        )
+    except requests.exceptions.Timeout as e:
+        click.echo(f"Timeout error: {e}. Возможно надо подключиться через прокси. Сервер доступен только из РФ.")
+        
+    except requests.exceptions.RequestException as e:
+        click.echo(f"Connection error: {e}")
+    except Exception as e:
+        click.echo(f"Some problem  {e}. Sorry: {art('umadbro')}")
+        
 
 
 @click.command()
