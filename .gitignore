@@ -2,6 +2,7 @@
 .vscode
 *.xlsx
 *.json
+*.zip
 prox*
 run.sh
 config.ini

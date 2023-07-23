@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import re
 import os
-import sys
 
 from src.app import ReestrRequest
 
@@ -205,49 +204,9 @@ class ReestrData(ReestrRequest):
     def save(self):
         self.create_df()
         
-        excel_path = os.path.join(self.path, f'data_{self.filter}.xlsx')
-        json_path = os.path.join(self.path, f'data_{self.filter}.json.zip')
+        excel_path = os.path.join(self.path, f'{self.filter}.xlsx')
+        json_path = os.path.join(self.path, f'{self.filter}.json.zip')
 
         self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
         self.df.to_json(path_or_buf=json_path, indent=4, compression='zip')
         
-def save_in_excel(path: str, dataframe_to_save: pd.DataFrame, name_for_sheet: str):
-    """
-    Функция для сохранения в определенный лист экселя
-    path - путь для сохранения
-    df - датафрейм для сохранения
-    name_for_sheet - название листа
-    """
-
-    if os.path.exists(path):
-        with pd.ExcelWriter(path, mode="a", if_sheet_exists="replace") as writer:
-            dataframe_to_save.to_excel(
-                writer,
-                sheet_name=name_for_sheet,
-                merge_cells=False,
-                freeze_panes=(1, 0),
-                na_rep="",
-            )
-
-    else:
-        dataframe_to_save.to_excel(
-            path,
-            sheet_name=name_for_sheet,
-            merge_cells=False,
-            freeze_panes=(1, 0),
-            na_rep="",
-        )
-
-def path_to_desktop():
-    # Функция для определения пути сохранения файла на рабочий стол в зависимости от ОС
-
-    ostype = sys.platform
-    if "win" in ostype:
-        desktop = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
-    else:
-        desktop = os.path.expanduser("~")
-    return desktop
-
-if __name__ == "__main__":
-    x = ReestrData()
-    x.save()

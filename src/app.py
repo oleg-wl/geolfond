@@ -1,5 +1,9 @@
-#!venv/bin/python
+#!venv/bin/python3
 # -*- coding=utf-8 -*-
+
+'''
+Модуль для запроса к серверу и получения сырых данных
+'''
 
 import requests
 import socks
@@ -7,7 +11,6 @@ import socket
 import os
 
 import src.queries as queries
-
 
 class ReestrRequest(object):
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
@@ -21,11 +24,11 @@ class ReestrRequest(object):
         self.session = requests.Session()
 
         # Блок проверки наличия config.ini
-        if os.path.exists("config.ini"):
+        if os.path.exists("src/config.ini"):
             from configparser import ConfigParser
 
             config = ConfigParser()
-            config.read("config.ini")
+            config.read("src/config.ini")
 
             self.path = os.path.abspath(config['DEFAULT']['path'])
 
@@ -82,6 +85,7 @@ class ReestrRequest(object):
         response = self.session.post(
             self.url, headers=self.headers, json=self.json_data
         ).json()
+        #return response.text
 
         # Подготовка данных
         response["result"]["data"]["cols"][16] = ["Дата.1"]
@@ -90,8 +94,3 @@ class ReestrRequest(object):
         cols = [v[0] for v in response["result"]["data"]["cols"]]
         vals = response["result"]["data"]["values"]
         self.data = dict(zip(cols, vals))
-
-
-
-
-
