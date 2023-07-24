@@ -3,7 +3,7 @@ import json
 from pydantic import BaseModel, Json, Field
 #from src.app import ReestrRequest
 
-'''
+
 class OutputData(BaseModel):
             link: list = Field(alias='Ссылка на карточку лицензии')
             num: list = Field(alias='Государственный регистрационный номер')
@@ -27,7 +27,7 @@ class OutputData(BaseModel):
             prew_full: list = Field(alias='Сведения о реестровых записях в отношении ранее выданных лицензий на пользование соответствующим участком недр')
             link_alsn: list = Field(alias='Ссылка на АСЛН')
             #дропнуть
-'''
+
 
 class cols(BaseModel):
     col: Any

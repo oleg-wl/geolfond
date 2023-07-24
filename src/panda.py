@@ -77,17 +77,14 @@ class ReestrData(ReestrRequest):
         # Извлечение ИНН:
         # Паттерны regrex
         pattern_for_inn = "([\d{10}|\d{12}]+)"
-        pattern_for_replace_inn = "(\(ИНН.*\)$)"
+        pattern_for_replace_inn = "( \(ИНН.*\)$)"
 
         self.df["INN"] = self.df["owner_full"].str.extract(pattern_for_inn)
         self.df["INN"] = (
             self.df["INN"].astype(str, errors="ignore").str.replace(".0", "", regex=False)
         )
-        self.df["owner"] = (
-            self.df["owner_full"]
-            .replace(pattern_for_replace_inn, "", regex=True)
-            .str.strip()
-        )
+        self.df["owner"] = self.df["owner_full"].str.replace(pattern_for_replace_inn, "", regex=True)
+
 
     # Функция для очистки данных о недропользователях
     # Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
@@ -110,6 +107,8 @@ class ReestrData(ReestrRequest):
         change_inn(self.df['owner'].unique().tolist())
         change_owners(self.df['INN'].unique().tolist())
 
+        self.df["owner"] = self.df["owner"].fillna(value=self.df["owner_full"], axis=0)
+        
         forms = {'ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ЗАО',
                     'ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ':'ИП',
                     'НЕПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'НПАО',
@@ -195,17 +194,21 @@ class ReestrData(ReestrRequest):
         )
         self.df = self.df[self.df["date"].notna()]
 
+        for_test = self.df
+
         self.df = (self.df.drop(columns=list(cols.values())[5:])
             .astype(dtype=types)
             .where(~self.df.isnull(), "")
             .reset_index()
         )
 
+        return for_test
+        
     def save(self):
         self.create_df()
         
         excel_path = os.path.join(self.path, f'{self.filter}.xlsx')
-        json_path = os.path.join(self.path, f'{self.filter}.json.zip')
+        json_path = os.path.join(self.path, f'{self.filter}.zip')
 
         self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
         self.df.to_json(path_or_buf=json_path, indent=4, compression='zip')

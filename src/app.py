@@ -1,9 +1,9 @@
 #!venv/bin/python3
 # -*- coding=utf-8 -*-
 
-'''
+"""
 Модуль для запроса к серверу и получения сырых данных
-'''
+"""
 
 import requests
 import socks
@@ -12,10 +12,11 @@ import os
 
 import src.queries as queries
 
+
 class ReestrRequest(object):
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
 
-    def __init__(self, filter: str='oil'):
+    def __init__(self, filter: str = "oil"):
         # Создание объекта сессии:
         self.filter = filter
 
@@ -30,7 +31,9 @@ class ReestrRequest(object):
             config = ConfigParser()
             config.read("src/config.ini")
 
-            self.path = os.path.abspath(config['DEFAULT']['path'])
+            self.path = os.path.abspath(config["DEFAULT"]["path"])
+            self.logfile = os.path.abspath(config["DEFAULT"]["logfile"])
+            
 
             # Настройки для прокси через российский VDS
             if "PROXY" in config:
