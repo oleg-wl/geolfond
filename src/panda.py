@@ -66,7 +66,8 @@ class ReestrData(ReestrRequest):
             self.df["date"], format="%Y-%m-%d", yearfirst=True
         )
         self.df["Year"] = self.df["date"].dt.year  # Год лицензии
-
+        self.df["Year"] = self.df["Year"].astype('int')
+        
         # Условный столбец последняя лицензия
         self.df["Last"] = np.where(
             self.df['forw_full'].isna(),
@@ -80,9 +81,7 @@ class ReestrData(ReestrRequest):
         pattern_for_replace_inn = "( \(ИНН.*\)$)"
 
         self.df["INN"] = self.df["owner_full"].str.extract(pattern_for_inn)
-        self.df["INN"] = (
-            self.df["INN"].astype(str, errors="ignore").str.replace(".0", "", regex=False)
-        )
+        self.df["INN"] = self.df["INN"].astype('int', errors="ignore")
         self.df["owner"] = self.df["owner_full"].str.replace(pattern_for_replace_inn, "", regex=True)
 
 
@@ -211,5 +210,5 @@ class ReestrData(ReestrRequest):
         json_path = os.path.join(self.path, f'{self.filter}.zip')
 
         self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
-        self.df.to_json(path_or_buf=json_path, indent=4, compression='zip')
+        self.df.to_json(path_or_buf=json_path, orient='records', indent=4, compression='zip')
         

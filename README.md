@@ -2,7 +2,8 @@
 Проект для автоматизации получения данных о лицензиях на пользование недрами
 ## API
 Данные в формате JSON доступны при запросе к API <br>
-Сайт проекта на [geolfind.ru](https://www.geolfond.ru)
+Сайт проекта на [geolfind.ru](https://www.geolfond.ru) <br>
+Документация для [api](https://www.geolfond.ru/api/docs) <br>
 
 
 
