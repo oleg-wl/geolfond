@@ -23,3 +23,7 @@ try:
 
 except AssertionError as e:
     print(e)
+
+
+#assert dataset['prew_'].count() == dataset['prew_full'].count(), 'Incorrect prew extract'
+#assert len(lookup_table.index.unique()) == len(dataset[dataset['Last'] == True].index), "Error"

@@ -212,3 +212,56 @@ class ReestrData(ReestrRequest):
         self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
         self.df.to_json(path_or_buf=json_path, orient='records', indent=4, compression='zip')
         
+
+class ReestrMatrix(ReestrData):
+    """
+   Класс для создания матрицы для меппинга ГБЗ и выгрузки из реестра 
+    """
+    def __init__(self, filter='oil'):
+        super().__init__(filter='oil')
+
+        self.config()
+
+    def create_matrix(self):
+        dataset = ReestrData(filter).create_df()
+        #Очистить данные о предыдущих лицензиях
+        dataset['prew_'] = dataset['prew_full'].str.replace('\n', ':', regex=True).str.replace(' от \d\d\.\d\d', '', regex=True)
+
+        #Извлечь все предыдущие лицензии и их год
+        pattern = "(?P<old_lic>[А-Я]{3}\d*[А-Я]{2})(?:.)(?P<old_year>\d{4})"
+        df_left = dataset['prew_'].str.extractall(pattern).droplevel(1).astype(dtype={'old_year':'int'})
+
+        #Добавить все текущие лицензии и их год
+        df_right = dataset.loc[dataset['Last'] == True, ['Year']].astype('int')
+
+        #Таблица для связи текущих лицензий с предыдущими
+        lookup_table = df_left.merge(df_right, how='right', left_index=True, right_index=True)
+        lookup_table = lookup_table[['Year', 'old_lic', 'old_year']]    #.to_excel(excel_writer='data/test.xlsx')
+
+        #Создание датафрейма для матрицы соотношения номеров старых лицензий с текущими лицензиями
+        index = list(set(lookup_table.index.to_list()))
+        columns = list(set(lookup_table.Year.tolist()))
+
+        matrix = pd.DataFrame(data = None, index = index, columns=columns)
+        matrix
+
+        #Алгоритм заполнения датафрейма
+        for i in lookup_table.itertuples():
+            ind = i[0]
+            col = i[1]
+            old_lic = i[2]
+            old_year = i[3]
+            matrix.loc[ind, col] = ind
+            matrix.loc[ind, old_year] = old_lic
+
+        #Заполнение пустых ячеек вправо
+        matrix = matrix.ffill(axis=1)
+        
+        self.matrix_path = os.path.join(self.path, 'matrix.xlsx')
+        if os.path.exists(self.matrix_path):
+            with pd.ExcelWriter(path=self.matrix_path, if_sheet_exists='replace', mode='a') as writer:
+                matrix.to_excel(writer, sheet_name='matrix')
+                lookup_table.to_excel(writer, sheet_name='lookup_table')
+        else: 
+            matrix.to_excel(self.matrix_path,mode='a', sheet_name='matrix')
+            lookup_table.to_excel(self.matrix_path, mode='a', sheet_name='lookup_table')

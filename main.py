@@ -9,7 +9,7 @@ import click
 import requests
 from art import tprint, art
 
-from src.panda import ReestrData
+from src.panda import ReestrData, ReestrMatrix
 from src.queries import lfilt
 
 
@@ -70,12 +70,31 @@ def download(filter: str):
 
 
 @click.command()
-def matrix():
+@click.option(
+    "-f",
+    "--filter",
+    default="oil",
+    type=str,
+    show_default=True,
+    help="Укажи значение фильтра из команды filter",
+)
+def matrix(filter: str):
     """
     Скачать матрицу данных об лицензиях по годам, в разработке
     """
-    pass
+    try:
+        data = ReestrMatrix(filter)
+        click.echo(f"Сохранение данных в {data.path}")
+        data.create_matrix()
+        click.echo("Успех {n}\n".format(n=art("rock on2")))
 
+    except requests.exceptions.Timeout as e:
+        click.echo(f"Timeout error: {e}. Возможно надо подключиться через прокси. Сервер доступен только из РФ.")
+        
+    except requests.exceptions.RequestException as e:
+        click.echo(f"Connection error: {e}")
+    except Exception as e:
+        click.echo(f"Some problem  {e}. Sorry: {art('umadbro')}")
 
 @click.group()
 def cli():
