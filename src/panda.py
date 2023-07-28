@@ -212,3 +212,71 @@ class ReestrData(ReestrRequest):
         self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
         self.df.to_json(path_or_buf=json_path, orient='records', indent=4, compression='zip')
         
+
+def construct_pivot(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Функция для создания матрицы ключей для связки с ГБЗ. Создает плоскую таблицу с столбцами год и номерами предыдущих лицензий.
+
+    :return pd.DataFrame: датафрейм для сохранения в эксель
+    """
+
+    # Создание датафрейма с номерами послединих лицензий
+    df_last = df[
+        [
+            "Наименование участка недр",
+            "Государственный регистрационный номер",
+            "Дата лицензии",
+            "Year",
+        ]
+    ][df.Last == True]
+    df_last["prev_lic"] = df_last["Государственный регистрационный номер"]
+
+    # Создание датафрейма для присоединения к мейну
+    df_last_pivoted = (
+        df_last.pivot(
+            index=[
+                "Наименование участка недр",
+                "Государственный регистрационный номер",
+                "Дата лицензии",
+            ],
+            columns=["Year"],
+        )["prev_lic"]
+        .sort_values(by=["Year"], axis=1, ascending=False)
+        .bfill(axis=1)
+        .ffill(axis=1)
+    )
+
+    # Создание основного датафрейма для лицензий
+    df_main = df[
+        [
+            "Наименование участка недр",
+            "Государственный регистрационный номер",
+            "Дата лицензии",
+            "Year",
+            "prev_lic",
+        ]
+    ].sort_values("Year", ascending=False)
+
+    # добавление "_" к значению
+    df_main["prev_lic"] = df_main["prev_lic"].apply(
+        lambda x: "_" + x if type(x) is str else np.nan
+    )
+
+    # Создание пивот-датафрейма с столбцами в убывающем порядке
+    df_pivoted = (
+        df_main.pivot(
+            index=[
+                "Наименование участка недр", #!Будет ошибка из-за пустых строк или дубликатов
+                "Государственный регистрационный номер",
+                "Дата лицензии",
+            ],
+            columns=["Year"],
+        )["prev_lic"]
+        .sort_values(by=["Year"], axis=1, ascending=False)
+        .ffill(axis=1)
+    )
+
+    # Объединение датафреймов main и last. Датафрейм last это дополнительная строка последнеей записи в реестре
+    df_concat = pd.concat([df_pivoted, df_last_pivoted]).sort_index(level=[0, 2])
+
+    return df_concat
