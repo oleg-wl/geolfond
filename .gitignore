@@ -8,6 +8,7 @@ run.sh
 config.ini
 !example.*.ini
 *.pem
+vs.code
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -9,8 +9,7 @@ import click
 import requests
 from art import tprint, art
 
-from src.panda import ReestrData, ReestrMatrix
-from src.queries import lfilt
+from src import panda, queries
 
 
 @click.command()
@@ -27,7 +26,7 @@ def filters():
     """
     Показать список доступных фильтров для downloads
     """
-    for key, value in lfilt.items():
+    for key, value in queries.lfilt.items():
         click.echo(f"-  {key}    для фильтра: {value[0:24]}...")
 
 
@@ -48,9 +47,10 @@ def download(filter: str):
     click.echo("Загрузка данных...")
 
     try:
-        data = ReestrData(filter)
-        n = sum(x is None for x in data.data["Сведения о переоформлении лицензии на пользование недрами"]
-            ), len(data.data["Дата"])
+        data = panda.ReestrData()
+        data.create_df(filter)
+        n = sum(x is None for x in data.data['forw_full']
+            ), len(data.data["date"])
         click.echo("Данные загружены успешно. Всего лицензий: {:d}. Действующих лицензий: {:d}.".format(
                     n[1], n[0]
                 )
@@ -83,10 +83,11 @@ def matrix(filter: str):
     Скачать матрицу данных об лицензиях по годам, в разработке
     """
     try:
-        data = ReestrMatrix(filter)
-        click.echo(f"Сохранение данных в {data.path}")
-        data.create_matrix()
+        click.echo("Погнали... {n}".format(n=art("rand")))
+        data = panda.ReestrMatrix()
+        data.create_matrix(filter)
         click.echo("Успех {n}\n".format(n=art("rock on2")))
+        click.echo(f"Сохранение данных в {data.path}")
 
     except requests.exceptions.Timeout as e:
         click.echo(f"Timeout error: {e}. Возможно надо подключиться через прокси. Сервер доступен только из РФ.")

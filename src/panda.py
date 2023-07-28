@@ -1,49 +1,19 @@
-import pandas as pd
-import numpy as np
+#!venv/bin/python3
 import re
 import os
 
-from src.app import ReestrRequest
+import pandas as pd
+import numpy as np
 
-class ReestrData(ReestrRequest):
-    def __init__(self, filter='oil'):
-        super().__init__(filter='oil')
+from src import queries
 
-        self.config()
-        self.get_data_from_reestr()
-        self.df = pd.DataFrame(data=self.data)
+from . import app
 
-
-    def create_df(self):
-        """
-        Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
-        """
-        # Переименовать столбцы
-        cols = {
-            'Государственный регистрационный номер':'num',
-            'Дата':'date',
-            'Вид полезного ископаемого':'type',
-            'Наименование субъекта Российской Федерации или иной территории, на которой расположен участок недр':'state',
-            'Наименование участка недр, предоставленного в пользование по лицензии, кадастровый номер месторождения или проявления полезных ископаемых в ГКМ':'name',
-            #дропнуть
-            'Сведения о пользователе недр':'owner_full',
-            'Географические координаты угловых точек участка недр, верхняя и нижняя границы участка недр':'coords',
-            'Сведения о переоформлении лицензии на пользование недрами':'forw_full',
-            'Сведения о реестровых записях в отношении ранее выданных лицензий на пользование соответствующим участком недр':'prew_full',
-            'Реквизиты документа, на основании которого выдана лицензия на пользование недрами':'doc_details',
-            'Наименование органа, выдавшего лицензию':'agency',
-            'Статус участка недр':'status',
-            'Целевое назначение лицензии':'purpose',
-            'Наличие полного электронного образа':'image',
-            'Ссылка на карточку лицензии':'link',
-            'Сведения о внесении изменений и дополнений в лицензию на пользование недрами, сведения о наличии их электронных образов':'changes',
-            'Реквизиты приказа о прекращении права пользования недрами, приостановлении или ограничении права пользования недрами':'order',
-            'Дата.1':'date_stop',
-            'Дата.2':'date_end',
-            'Срок и условия приостановления или ограничения права пользования недрами':'stop_end_conditions',
-            'Ссылка на АСЛН':'link_alsn'
-            }
-        types = {
+class ReestrData(app.ReestrRequest):
+    def __init__(self):
+        super().__init__()
+         
+        self.types = {
             "date": "datetime64[D]",
             "Last": "bool",
             "N": "str",
@@ -58,8 +28,13 @@ class ReestrData(ReestrRequest):
             "INN": "str",
             "Year": "int",
         }
-        
-        self.df = self.df.rename(columns=cols).set_index("num")
+
+    def create_df(self, filter: str = 'oil'):
+        """
+        Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
+        """
+        data = self.get_data_from_reestr(filter)
+        self.df = pd.DataFrame(data).set_index("num")
         
         # выделение столбца ГОД
         self.df["date"] = pd.to_datetime(
@@ -193,21 +168,18 @@ class ReestrData(ReestrRequest):
         )
         self.df = self.df[self.df["date"].notna()]
 
-        for_test = self.df
-
-        self.df = (self.df.drop(columns=list(cols.values())[5:])
-            .astype(dtype=types)
-            .where(~self.df.isnull(), "")
-            .reset_index()
-        )
-
-        return for_test
+        return self.df
         
     def save(self):
-        self.create_df()
         
         excel_path = os.path.join(self.path, f'{self.filter}.xlsx')
         json_path = os.path.join(self.path, f'{self.filter}.zip')
+
+        self.df = (self.df.drop(labels=list(queries.cols.values())[5:], axis=1)
+            .astype(dtype=self.types)
+            .where(~self.df.isnull(), "")
+            .reset_index()
+        )
 
         self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
         self.df.to_json(path_or_buf=json_path, orient='records', indent=4, compression='zip')
@@ -217,13 +189,13 @@ class ReestrMatrix(ReestrData):
     """
    Класс для создания матрицы для меппинга ГБЗ и выгрузки из реестра 
     """
-    def __init__(self, filter='oil'):
-        super().__init__(filter='oil')
-
+    def __init__(self):
+        super().__init__()
         self.config()
 
-    def create_matrix(self):
-        dataset = ReestrData(filter).create_df()
+    def create_matrix(self, filter: str = 'oil'):
+        dataset = ReestrData().create_df(filter)
+
         #Очистить данные о предыдущих лицензиях
         dataset['prew_'] = dataset['prew_full'].str.replace('\n', ':', regex=True).str.replace(' от \d\d\.\d\d', '', regex=True)
 
@@ -263,5 +235,5 @@ class ReestrMatrix(ReestrData):
                 matrix.to_excel(writer, sheet_name='matrix')
                 lookup_table.to_excel(writer, sheet_name='lookup_table')
         else: 
-            matrix.to_excel(self.matrix_path,mode='a', sheet_name='matrix')
-            lookup_table.to_excel(self.matrix_path, mode='a', sheet_name='lookup_table')
+            matrix.to_excel(self.matrix_path, sheet_name='matrix')
+            lookup_table.to_excel(self.matrix_path, sheet_name='lookup_table')
