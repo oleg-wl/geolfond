@@ -1,19 +1,21 @@
 #!venv/bin/python3
 import traceback
 from datetime import datetime
-from src.panda import ReestrMatrix
+from src import panda
 
 def run_code():
 
-    y = ReestrMatrix()
-    y.config()
+    df = panda.ReestrData()
+    df.config()
 
-    with open(y.logfile, mode='a') as logs:
+    #Добавляет и сохраняет выгрузку
+
+    with open(df.logfile, mode='a') as logs:
         try:
             logs.write(f'\nStart - {datetime.now()} \n')
-            y.save()
-            y.create_matrix()
-            logs.write(f'{datetime.now()}, success. Saved in {y.path}')
+            df.create_df()
+            df.save()
+            logs.write(f'{datetime.now()}, success. Saved in {df.path}')
         
 
         except:

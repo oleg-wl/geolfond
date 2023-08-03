@@ -27,11 +27,12 @@ class ReestrRequest(object):
         # Полученное количество записей подставить в сдлвать для следующего запроса
         self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = 1
         
+        # Создание объекта сессии:
+        self.session = requests.Session()
+
     def config(self):
         """Запуск конфигурации"""
         
-        # Создание объекта сессии:
-        self.session = requests.Session()
 
         # Блок проверки наличия config.ini
         if os.path.exists("src/config.ini"):
@@ -66,7 +67,6 @@ class ReestrRequest(object):
         """
         Метод для получения количества записей.
         """
-        self.config()
         
         self.filter = filter 
         self.filt = queries.lfilt[self.filter]
