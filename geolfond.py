@@ -10,11 +10,11 @@ def run_code():
         try:
             logs.write(f'\nStart - {datetime.now()} \n')
             parser.create_df()
-            logs.write(f'{datetime.now()}, success. Saved in {parser.path}')
+            logs.write(f'{datetime.now()}, success. Saved in {parser.path}\n')
         
 
         except:
-            logs.write(f'ERROR - {datetime.now()}')
+            logs.write(f'ERROR - {datetime.now()}\n')
             traceback.print_exc(file=logs)
 
 if __name__ == "__main__":

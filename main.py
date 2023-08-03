@@ -9,7 +9,7 @@ import click
 import requests
 from art import tprint, art
 
-from Parser import panda, queries
+from Parser import parser, queries
 
 
 @click.command()
@@ -47,16 +47,15 @@ def download(filter: str):
     click.echo("Загрузка данных...")
 
     try:
-        data = panda.ReestrData()
-        data.create_df(filter)
-        n = sum(x is None for x in data.data['forw_full']
-            ), len(data.data["date"])
+        parser.create_df(filter)
+        n = sum(x is None for x in parser.data['forw_full']
+            ), len(parser.data["date"])
         click.echo("Данные загружены успешно. Всего лицензий: {:d}. Действующих лицензий: {:d}.".format(
                     n[1], n[0]
                 )
             )
-        click.echo(f"Сохранение данных в {data.path}")
-        data.save()
+        click.echo(f"Сохранение данных в {parser.path}")
+        parser.save()
         click.echo("Успех {n}\n".format(n=art("rock on2")))
 
     except requests.exceptions.Timeout as e:
@@ -84,10 +83,10 @@ def matrix(filter: str):
     """
     try:
         click.echo("Погнали... {n}".format(n=art("rand")))
-        data = panda.ReestrMatrix()
-        data.create_matrix(filter)
+        parser.create_df(filter)
+        parser.create_matrix()
         click.echo("Успех {n}\n".format(n=art("rock on2")))
-        click.echo(f"Сохранение данных в {data.path}")
+        click.echo(f"Сохранение данных в {parser.path}")
 
     except requests.exceptions.Timeout as e:
         click.echo(f"Timeout error: {e}. Возможно надо подключиться через прокси. Сервер доступен только из РФ.")
