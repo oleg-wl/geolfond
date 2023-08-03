@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from src import queries
+from .queries import cols as _cols
 
 from . import app
 
@@ -168,14 +168,13 @@ class ReestrData(app.ReestrRequest):
         )
         self.df = self.df[self.df["date"].notna()]
 
-        return self.df
         
     def save(self):
         
         excel_path = os.path.join(self.path, f'{self.filter}.xlsx')
         json_path = os.path.join(self.path, f'{self.filter}.zip')
 
-        self.df = (self.df.drop(labels=list(queries.cols.values())[5:], axis=1)
+        self.df = (self.df.drop(labels=list(_cols.values())[5:], axis=1)
             .astype(dtype=self.types)
             .where(~self.df.isnull(), "")
             .reset_index()
@@ -185,17 +184,12 @@ class ReestrData(app.ReestrRequest):
         self.df.to_json(path_or_buf=json_path, orient='records', indent=4, compression='zip')
         
 
-class ReestrMatrix(ReestrData):
-    """
-   Класс для создания матрицы для меппинга ГБЗ и выгрузки из реестра 
-    """
-    def __init__(self):
-        super().__init__()
-        self.config()
 
-    def create_matrix(self, filter: str = 'oil'):
-        dataset = ReestrData().create_df(filter)
-
+    def create_matrix(self):
+        """
+        Метод создает матрицу для создания меппенига для ГБЗ. Перед применением метода создай датафрейм .create_df(filter)
+        """
+        dataset = self.df 
         #Очистить данные о предыдущих лицензиях
         dataset['prew_'] = dataset['prew_full'].str.replace('\n', ':', regex=True).str.replace(' от \d\d\.\d\d', '', regex=True)
 

@@ -9,7 +9,7 @@ import click
 import requests
 from art import tprint, art
 
-from src import panda, queries
+from Parser import panda, queries
 
 
 @click.command()

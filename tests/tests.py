@@ -3,7 +3,7 @@
 
 import sys
 sys.path.append('.')
-from src.panda import ReestrData
+from Parser.panda import ReestrData
 
 dataset = ReestrData()
 dataset.config()
