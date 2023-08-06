@@ -9,8 +9,6 @@ import os
 import requests
 import socks
 import socket
-import zipfile
-import json
 
 from .headers import url as _url
 from .headers import headers as _headers 
@@ -47,7 +45,7 @@ class ReestrRequest(object):
             config = ConfigParser()
             config.read("Parser/config.ini")
 
-            self.path = os.path.abspath(config["DEFAULT"]["path"])
+            os.environ['DATA_FOLDER_PATH'] = os.path.abspath(config["DEFAULT"]["data_folder"])
             self.logfile = os.path.abspath(config["DEFAULT"]["logfile"])
             
 
@@ -68,28 +66,10 @@ class ReestrRequest(object):
             requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
             self.path = os.getcwd()
 
-    def write_cache(self, data):
-        
-        fl = os.path.join(self.path, 'response.zip')
-
-        with zipfile.ZipFile(fl, 'w') as zipf:
-            zipf.writestr('data.json', data=json.dumps(data))
-
-    def read_cache(self):
-
-        fl = os.path.join(self.path, 'response.zip')
-        
-        if os.path.exists(fl):
-            with zipfile.ZipFile(fl, 'r') as zipf:
-                with zipf.open('data.json') as json_file:
-                    return json.loads(json_file)
-        else: return None
-
     def get_record_count(self, filter: str = "oil"):
         """
         Метод для получения количества записей.
         """
-        self.config()
         
         self.filter = _filter(filter) 
         self.json_data["RawOlapSettings"]["measureGroup"]["filters"][0][0][
@@ -125,6 +105,4 @@ class ReestrRequest(object):
         vals = response["result"]["data"]["values"]
 
         #Возващает словарь с данными 
-        self.data =  dict(zip(cols, vals))
-
-        self.write_cache(self.data)
+        return dict(zip(cols, vals))

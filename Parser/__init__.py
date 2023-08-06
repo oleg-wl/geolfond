@@ -1,10 +1,14 @@
-#from .panda import ReestrData as _ReestrData
+from .reestr_client import ReestrRequest as _client 
+from .data_transformer import ReestrData as _data 
 
-#__version__ = '0.1.0'
-#__all__ = ['parser']
 
-#parser = _ReestrData()
-#parser.config()
+__version__ = '0.1.0'
+__all__ = ['client', 'data']
+
+client = _client()
+client.config()
+
+data = _data()
 
 
 

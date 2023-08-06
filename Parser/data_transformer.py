@@ -4,7 +4,6 @@ import os
 
 import pandas as pd
 import numpy as np
-import json
 
 from .headers import cols as _cols
 
@@ -14,22 +13,8 @@ from .headers import cols as _cols
 
 
 class ReestrData(object):
-    def __init__(self):
 
-    def get_cache(self, filter: str):
-        data = _client()
-        data.read_cache()
-
-
-        data.get_record_count(filter)
-        self.row_count = data.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"]
-
-        with open('data/response.json', mode='r' ) as resp:
-            cached = json.load(resp)
-            
-        
-
-    def create_df(self, filter: str = 'oil'):
+    def create_df(self, data): 
         """
         Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
         """
@@ -49,7 +34,6 @@ class ReestrData(object):
             "Year": "int",
         }
 
-        data = self.get_data_from_reestr(filter)
         self.df = pd.DataFrame(data).set_index("num")
         
         # выделение столбца ГОД
@@ -185,19 +169,17 @@ class ReestrData(object):
         self.df = self.df[self.df["date"].notna()]
 
         
-    def save(self):
+        self.path = os.environ.get('DATA_FOLDER_PATH') 
         
-        excel_path = os.path.join(self.path, f'{self.filter}.xlsx')
-        json_path = os.path.join(self.path, f'{self.filter}.zip')
+        excel_path = os.path.join(self.path, 'data.xlsx')
 
-        self.df = (self.df.drop(labels=list(_cols.values())[5:], axis=1)
+        save = (self.df.drop(labels=list(_cols.values())[5:], axis=1)
             .astype(dtype=self.types)
             .where(~self.df.isnull(), "")
             .reset_index()
         )
 
-        self.df.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
-        self.df.to_json(path_or_buf=json_path, orient='records', indent=4, compression='zip')
+        save.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
         
 
 
@@ -225,7 +207,6 @@ class ReestrData(object):
         columns = list(set(lookup_table.Year.tolist()))
 
         matrix = pd.DataFrame(data = None, index = index, columns=columns)
-        matrix
 
         #Алгоритм заполнения датафрейма
         for i in lookup_table.itertuples():

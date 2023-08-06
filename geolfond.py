@@ -1,16 +1,19 @@
 #!venv/bin/python3
 import traceback
 from datetime import datetime
-from Parser import parser
+from Parser import client, data
 
 def run_code():
 
     #Добавляет и сохраняет выгрузку
-    with open(parser.logfile, mode='a') as logs:
+    with open(client.logfile, mode='a') as logs:
         try:
             logs.write(f'\nStart - {datetime.now()} \n')
-            parser.create_df()
-            logs.write(f'{datetime.now()}, success. Saved in {parser.path}\n')
+            
+            data.create_df(client.get_data_from_reestr())
+            data.create_matrix()
+
+            logs.write(f'{datetime.now()}, success. Saved in {data.path}\n')
         
 
         except:
