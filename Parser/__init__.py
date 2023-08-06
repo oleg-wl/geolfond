@@ -1,10 +1,10 @@
-from .panda import ReestrData as _ReestrData
+#from .panda import ReestrData as _ReestrData
 
-__version__ = '0.1.0'
-__all__ = ['parser']
+#__version__ = '0.1.0'
+#__all__ = ['parser']
 
-parser = _ReestrData()
-parser.config()
+#parser = _ReestrData()
+#parser.config()
 
 
 

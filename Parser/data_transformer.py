@@ -4,15 +4,35 @@ import os
 
 import pandas as pd
 import numpy as np
+import json
 
-from .queries import cols as _cols
+from .headers import cols as _cols
 
-from . import app
+#TODO: Сделай здесь отдельный модуль для обработки и матрицы и в основном модуле parser.py запиши логику этих модулей отдельно
+# как опция перенеси туда работу с кеше
+# в него также можно перенест работу  сфильтром 
 
-class ReestrData(app.ReestrRequest):
+
+class ReestrData(object):
     def __init__(self):
-        super().__init__()
-         
+
+    def get_cache(self, filter: str):
+        data = _client()
+        data.read_cache()
+
+
+        data.get_record_count(filter)
+        self.row_count = data.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"]
+
+        with open('data/response.json', mode='r' ) as resp:
+            cached = json.load(resp)
+            
+        
+
+    def create_df(self, filter: str = 'oil'):
+        """
+        Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
+        """
         self.types = {
             "date": "datetime64[D]",
             "Last": "bool",
@@ -29,10 +49,6 @@ class ReestrData(app.ReestrRequest):
             "Year": "int",
         }
 
-    def create_df(self, filter: str = 'oil'):
-        """
-        Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
-        """
         data = self.get_data_from_reestr(filter)
         self.df = pd.DataFrame(data).set_index("num")
         
