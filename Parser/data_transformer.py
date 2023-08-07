@@ -34,7 +34,8 @@ class ReestrData(object):
             "Year": "int",
         }
 
-        self.df = pd.DataFrame(data).set_index("num")
+        self.filter = data[1]
+        self.df = pd.DataFrame(data[0]).set_index("num")
         
         # выделение столбца ГОД
         self.df["date"] = pd.to_datetime(
@@ -171,7 +172,7 @@ class ReestrData(object):
         
         self.path = os.environ.get('DATA_FOLDER_PATH') 
         
-        excel_path = os.path.join(self.path, 'data.xlsx')
+        excel_path = os.path.join(self.path, f'{self.filter}.xlsx')
 
         save = (self.df.drop(labels=list(_cols.values())[5:], axis=1)
             .astype(dtype=self.types)
@@ -220,11 +221,12 @@ class ReestrData(object):
         #Заполнение пустых ячеек вправо
         matrix = matrix.ffill(axis=1)
         
-        self.matrix_path = os.path.join(self.path, 'matrix.xlsx')
+        self.matrix_path = os.path.join(self.path, f'{self.filter}_matrix.xlsx')
         if os.path.exists(self.matrix_path):
             with pd.ExcelWriter(path=self.matrix_path, if_sheet_exists='replace', mode='a') as writer:
                 matrix.to_excel(writer, sheet_name='matrix')
                 lookup_table.to_excel(writer, sheet_name='lookup_table')
         else: 
             matrix.to_excel(self.matrix_path, sheet_name='matrix')
-            lookup_table.to_excel(self.matrix_path, sheet_name='lookup_table')
+            with pd.ExcelWriter(path=self.matrix_path, if_sheet_exists='replace', mode='a') as writer:
+                lookup_table.to_excel(writer, sheet_name='lookup_table')

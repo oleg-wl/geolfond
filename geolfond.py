@@ -10,7 +10,7 @@ def run_code():
         try:
             logs.write(f'\nStart - {datetime.now()} \n')
             
-            data.create_df(client.get_data_from_reestr())
+            data.create_df(client.get_data_from_reestr(filter='oil'))
             data.create_matrix()
 
             logs.write(f'{datetime.now()}, success. Saved in {data.path}\n')

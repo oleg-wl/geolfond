@@ -17,7 +17,7 @@ def filter(filter: str = 'oil'):
         "hard": "Т - Твердые полезные ископаемые",
     }
     try:
-        return lfilt[filter]
+        return filter, lfilt[filter]
     except KeyError:
         raise KeyError(f"Ошибка! Неверное значение фильтра для выгрузки {filter}") 
         

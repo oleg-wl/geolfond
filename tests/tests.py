@@ -3,23 +3,23 @@
 
 import sys
 sys.path.append('.')
-from Parser.panda import ReestrData
 
-dataset = ReestrData()
-dataset.config()
-test = dataset.create_df()
+from Parser import client, data
+
+data.create_df(client.get_data_from_reestr(filter='oil'))
 
 
-print (test['prev_lic'].count(), test['prew_full'].count())
-print (test['forw_lic'].count(), test['forw_full'].count())
-print(test['N'].count(), test['E'].count(), test['coords'].count())
-print(test['owner'].count(), test['owner_full'].count())
+print (data.df['prev_lic'].count(), data.df['prew_full'].count())
+print (data.df['forw_lic'].count(), data.df['forw_full'].count())
+print(data.df['N'].count(), data.df['E'].count(), data.df['coords'].count())
+print(data.df['owner'].count(), data.df['owner_full'].count())
 
 try: 
-    assert test['prew_full'].count() == test['prev_lic'].count(), 'Ошибка в выгрузке предыдущих лицензий'
-    assert test['forw_full'].count() == test['forw_lic'].count(), 'Ошибка в выгрузке будущих лицензий'
-    assert (test['N'].count() == test['coords'].count()) & (test['E'].count() == test['coords'].count()), 'Coords_extract_error'
-    assert test['owner'].count() == test['owner_full'].count(), 'Name_extract_error'
+    assert data.df['prew_full'].count() == data.df['prev_lic'].count(), 'Ошибка в выгрузке предыдущих лицензий'
+    assert data.df['forw_full'].count() == data.df['forw_lic'].count(), 'Ошибка в выгрузке будущих лицензий'
+    assert (data.df['N'].count() == data.df['coords'].count()) & (data.df['E'].count() == data.df['coords'].count()), 'Coords_extract_error'
+    assert data.df['owner'].count() == data.df['owner_full'].count(), 'Name_extract_error'
+    print ('Tests OK!')
 
 except AssertionError as e:
     print(e)

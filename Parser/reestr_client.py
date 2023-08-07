@@ -74,7 +74,7 @@ class ReestrRequest(object):
         self.filter = _filter(filter) 
         self.json_data["RawOlapSettings"]["measureGroup"]["filters"][0][0][
             "selectedFilterValues"
-        ] = [self.filter]
+        ] = [self.filter[1]]
 
         #Создание запроса
         response = self.session.post(
@@ -105,4 +105,4 @@ class ReestrRequest(object):
         vals = response["result"]["data"]["values"]
 
         #Возващает словарь с данными 
-        return dict(zip(cols, vals))
+        return dict(zip(cols, vals)), self.filter[0]
