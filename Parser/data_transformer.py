@@ -7,11 +7,6 @@ import numpy as np
 
 from .headers import cols as _cols
 
-#TODO: Сделай здесь отдельный модуль для обработки и матрицы и в основном модуле parser.py запиши логику этих модулей отдельно
-# как опция перенеси туда работу с кеше
-# в него также можно перенест работу  сфильтром 
-
-
 class ReestrData(object):
 
     def create_df(self, data): 
@@ -19,14 +14,14 @@ class ReestrData(object):
         Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
         """
         self.types = {
-            "date": "datetime64[D]",
+            #"date": "datetime64[D]",
             "Last": "bool",
             "N": "str",
             "E": "str",
             "prev_lic": "str",
-            "prev_date": "datetime64[D]",
+            #"prev_date": "datetime64[D]",
             "forw_lic": "str",
-            "forw_date": "datetime64[D]",
+            #"forw_date": "datetime64[D]",
             "name": "str",
             "type": "str",
             "state": "str",
@@ -168,11 +163,15 @@ class ReestrData(object):
             "num"
         )
         self.df = self.df[self.df["date"].notna()]
+        return self.df
 
-        
-        self.path = os.environ.get('DATA_FOLDER_PATH') 
-        
-        excel_path = os.path.join(self.path, f'{self.filter}.xlsx')
+    def save(self):
+        """
+        Метод для сохранения результата обработки в ексель файл
+        """
+
+        path = os.environ.get('DATA_FOLDER_PATH') 
+        self.excel_path = os.path.join(path, f'{self.filter}.xlsx')
 
         save = (self.df.drop(labels=list(_cols.values())[5:], axis=1)
             .astype(dtype=self.types)
@@ -180,7 +179,7 @@ class ReestrData(object):
             .reset_index()
         )
 
-        save.to_excel(excel_writer=excel_path,freeze_panes=(1, 0))
+        save.to_excel(excel_writer=self.excel_path,freeze_panes=(1, 0))
         
 
 
