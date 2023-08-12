@@ -5,7 +5,7 @@ def filter(filter: str = None):
     #Функция для быстрого выбора фильтра
 
     # Список фильтров
-    lfilt = {
+    lfilt: dict[str, str] = {
         "oil": "Н - Углеводородное сырье",
         "water": "В - Подземные воды (за исключением подземных минеральных вод)",
         "drag_met": "Б - Драгоценные металлы (золото, серебро, платина и металлы платиновой группы)",
@@ -26,7 +26,7 @@ def filter(filter: str = None):
             
 
 # Название колонок для pandas
-cols = {
+cols: dict[str, str] = {
     "Государственный регистрационный номер": "num",
     "Дата": "date",
     "Вид полезного ископаемого": "type",
@@ -51,9 +51,9 @@ cols = {
 }
 
 # Сконвертированные переменные для запроса
-url = "https://bi.rfgf.ru/corelogic/api/query"
+url: str = "https://bi.rfgf.ru/corelogic/api/query"
 
-headers = {
+headers: dict[str, str] = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0",
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Language": "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
@@ -72,7 +72,7 @@ headers = {
     # 'TE': 'trailers',
 }
 
-json_data = {
+json_data: dict = {
     "QueryType": "GetRawOlapData+Query",
     "RawOlapSettings": {
         "databaseId": "Main",
