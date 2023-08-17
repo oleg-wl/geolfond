@@ -6,9 +6,13 @@
 """
 
 import os
+from debugpy import connect
 import requests
 import socks
 import socket
+
+import sqlite3
+from .schema import create_table, insert_into
 
 from .headers import url as _url
 from .headers import headers as _headers 
@@ -20,6 +24,9 @@ class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
 
     def __init__(self):
+
+        self.conn = sqlite3.Connection('database.db')
+        self.cursor = self.conn.cursor()
 
         # Переменные для запроса
         self.url: str = _url
@@ -110,3 +117,19 @@ class ReestrRequest:
 
         #Возващает список словарей-строк и фильтр
         return data, self.filter[0]
+
+    def create_database(self):
+
+        data = self.get_data_from_reestr('oil')[0]
+
+        table_name = 'rawdata'
+        columns = ','.join([f'{val} TEXT' for val in _cols.values()])
+        sql = create_table(table_name=table_name, columns=columns)
+        self.cursor.execute(sql[0])
+        self.cursor.execute(sql[1])
+
+        for i in data:
+            sql = insert_into(table_name=table_name, rows=i)
+            self.cursor.execute(sql) 
+        self.conn.commit()
+        self.conn.close()

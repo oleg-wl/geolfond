@@ -10,6 +10,7 @@ config.ini
 *.pem
 vs.code
 venv*
+database.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
