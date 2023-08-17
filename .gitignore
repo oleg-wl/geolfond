@@ -9,6 +9,7 @@ config.ini
 !example.*.ini
 *.pem
 vs.code
+*.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

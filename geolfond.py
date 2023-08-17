@@ -11,9 +11,10 @@ def run_code():
             logs.write(f'\nStart - {datetime.now()} \n')
             
             data.create_df(client.get_data_from_reestr(filter='oil'))
-            data.create_matrix()
+            data.save()
+            #data.create_matrix()
 
-            logs.write(f'{datetime.now()}, success. Saved in {data.path}\n')
+            logs.write(f'{datetime.now()}, success. Saved in data\n')
         
 
         except:
