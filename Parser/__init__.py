@@ -3,12 +3,12 @@ from .data_transformer import ReestrData as _data
 
 
 __version__ = '0.1.0'
-__all__ = ['client', 'data']
+#__all__ = ['client', 'data']
 
-client = _client()
-client.config()
+#client = _client()
+#client.config()
 
-data = _data()
+#data = _data()
 
 
 

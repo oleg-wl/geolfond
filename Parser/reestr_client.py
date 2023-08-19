@@ -6,13 +6,7 @@
 """
 
 import os
-from debugpy import connect
 import requests
-import socks
-import socket
-
-import sqlite3
-from .schema import create_table, insert_into
 
 from .headers import url as _url
 from .headers import headers as _headers 
@@ -22,11 +16,18 @@ from .headers import filter as _filter
 
 class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
+    basedir = os.path.abspath(os.path.dirname((__file__)))
+
+    #: Config variables
+    logfile = os.path.join(basedir, 'logs.log')
+
+    # Создание объекта сессии и настройка прокси если требуется
+    session = requests.Session()
+    #requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
+    session.verify = False 
+    session.proxies = {}
 
     def __init__(self):
-
-        self.conn = sqlite3.Connection('database.db')
-        self.cursor = self.conn.cursor()
 
         # Переменные для запроса
         self.url: str = _url
@@ -38,41 +39,33 @@ class ReestrRequest:
         # Количество записей в запросе. Для получения всех записей надо делать тестовый запрос
         # Полученное количество записей подставить в сдлвать для следующего запроса
         self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = 1
-        
-        # Создание объекта сессии 
-        self.session = requests.Session()
 
-    def config(self):
+    @classmethod
+    def config(cls, config_path='config.ini'):
         """Запуск конфигурации из файла конфигурации config.ini"""
-        
+        config_path = os.path.join(cls.basedir, config_path)
+
         # Блок проверки наличия config.ini
-        if os.path.exists("Parser/config.ini"):
+        if os.path.exists(config_path):
             from configparser import ConfigParser
 
-            config = ConfigParser()
-            config.read("Parser/config.ini")
+            config_file = ConfigParser()
+            config_file.read(config_path)
 
-            os.environ['DATA_FOLDER_PATH'] = os.path.abspath(config["DEFAULT"]["data_folder"])
-            self.logfile = os.path.abspath(config["DEFAULT"]["logfile"])
+            os.environ['DATA_FOLDER_PATH'] = os.path.abspath(config_file["DEFAULT"]["data_folder"])
+            cls.logfile = os.path.abspath(config_file["DEFAULT"]["logfile"])
             
 
             # Настройки для прокси через российский VDS
-            if "PROXY" in config:
-                proxy_host = config["PROXY"]["proxy_host"]
-                proxy_port = config["PROXY"]["proxy_port"]
-
-                socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
-                socket.socket = socks.socksocket
-                self.session.proxies = {"https": f"socks5://{proxy_host}:{proxy_port}"}
+            if "PROXY" in config_file:
+                proxy_host = config_file["PROXY"]["proxy_host"]
+                proxy_port = config_file["PROXY"]["proxy_port"]
+                cls.session.proxies = {"https": f"socks5://{proxy_host}:{proxy_port}"}
 
             # Настройка SSL
-            if "SSL" in config:
-                cert = os.path.relpath(config["SSL"]["key"], os.getcwd())
-                self.session.verify = cert
-        else:
-            #requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
-            self.session.verify = False
-            self.path = os.getcwd()
+            if "SSL" in config_file:
+                cert = os.path.relpath(config_file["SSL"]["key"], os.getcwd())
+                cls.session.verify = cert
 
     def get_record_count(self):
         """
@@ -117,19 +110,3 @@ class ReestrRequest:
 
         #Возващает список словарей-строк и фильтр
         return data, self.filter[0]
-
-    def create_database(self):
-
-        data = self.get_data_from_reestr('oil')[0]
-
-        table_name = 'rawdata'
-        columns = ','.join([f'{val} TEXT' for val in _cols.values()])
-        sql = create_table(table_name=table_name, columns=columns)
-        self.cursor.execute(sql[0])
-        self.cursor.execute(sql[1])
-
-        for i in data:
-            sql = insert_into(table_name=table_name, rows=i)
-            self.cursor.execute(sql) 
-        self.conn.commit()
-        self.conn.close()
