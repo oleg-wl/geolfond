@@ -6,11 +6,16 @@ import pandas as pd
 import numpy as np
 
 from .headers import cols as _cols
-from .headers import filter as _filter
+from .database import engine, sql
 
-class ReestrData(object):
+class ReestrData:
+    #: работать с данными из базы данных
+    #: 
+    df = pd.read_sql(sql=sql, con=engine.connect())
+    
+    
 
-    def create_df(self, data): 
+    def create_df(self): 
         """
         Метод для создания пандас-датафрейма из данных, полученных после запроса к реестру
         """
@@ -30,8 +35,7 @@ class ReestrData(object):
             "Year": "int",
         }
 
-        self.filter = data[1]
-        self.df = pd.DataFrame(data[0]).set_index("num")
+        self.df = self.df.set_index("num")
         
         # выделение столбца ГОД
         self.df["date"] = pd.to_datetime(

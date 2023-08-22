@@ -113,4 +113,4 @@ class ReestrRequest:
             i['filter'] = self.filter[1]
 
         #Возващает список словарей-строк и фильтр
-        return data, self.filter[0]
+        return data

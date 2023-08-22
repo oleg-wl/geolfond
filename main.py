@@ -19,7 +19,7 @@ def info():
     О программе
     """
     tprint("geolfond")
-    click.echo("2023 год. Загрузка открытых даных РФРГ.")
+    click.echo("2023 год. Загрузка открытых данных РФРГ.")
 
 
 @click.command()
@@ -30,6 +30,7 @@ def filters():
     filter_list = _filter()
     for key, value in filter_list.items():
         click.echo(f"-  {key}    для фильтра: {value[0:24]}...")
+
 
 
 @click.command()

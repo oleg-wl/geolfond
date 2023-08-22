@@ -1,7 +1,4 @@
 
-from Parser import client
+from Parser.database import update_database
 
-x = client.get_data_from_reestr('oil')
-
-print(x[0][1])
-print(x[0][2])
+update_database()
