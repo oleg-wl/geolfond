@@ -107,6 +107,10 @@ class ReestrRequest:
 
         # Плоский список словарей-строк в которых столбец:значение
         data: list = [{key:vals[n][i] for n, key in enumerate(cols)} for i in range(len(vals[0]))]
+        
+        #: добавление столбца с фильтром
+        for i in data:
+            i['filter'] = self.filter[1]
 
         #Возващает список словарей-строк и фильтр
         return data, self.filter[0]

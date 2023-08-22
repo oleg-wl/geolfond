@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 
 from .headers import cols as _cols
+from .headers import filter as _filter
 
 class ReestrData(object):
 
@@ -55,6 +56,8 @@ class ReestrData(object):
         self.df["INN"] = self.df["INN"].astype('int', errors="ignore")
         self.df["owner"] = self.df["owner_full"].str.replace(pattern_for_replace_inn, "", regex=True)
 
+        #: Очистка для столбца с видом полезного ископаемого
+        self.df['filter'] = self.df['filter'].str.slice(start=4) 
 
     # Функция для очистки данных о недропользователях
     # Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
@@ -173,6 +176,7 @@ class ReestrData(object):
         path = os.environ.get('DATA_FOLDER_PATH') 
         self.excel_path = os.path.join(path, f'{self.filter}.xlsx')
 
+        #TODO: добавиль столбец фильтр
         save = (self.df.drop(labels=list(_cols.values())[5:], axis=1)
             .astype(dtype=self.types)
             .where(~self.df.isnull(), "")
