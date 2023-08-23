@@ -80,7 +80,7 @@ class ReestrRequest:
             response["result"]["recordCount"]
         )
 
-    def get_data_from_reestr(self, filter: str = "oil") -> tuple[list, str]:
+    def get_data_from_reestr(self, filter: str = "oil") -> list:
         """
         Метод делает запросы к базе данных Роснедр.
         Возращает плоский Python-словарь с данными.
