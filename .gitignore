@@ -9,8 +9,9 @@ config.ini
 !example.*.ini
 *.pem
 vs.code
-venv*
+*venv*
 database.db
+nohup.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

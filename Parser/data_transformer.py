@@ -5,9 +5,8 @@ import os
 import pandas as pd
 import numpy as np
 
-from .headers import cols as _cols
 
-def check_path() -> str:
+def check_path():
     return os.environ['DATA_FOLDER_PATH'] if os.environ.get('DATA_FOLDER_PATH') is not None else os.path.abspath('data')
  
 
@@ -20,19 +19,24 @@ def create_df(raw_data: list) -> pd.DataFrame:
     """
 
     types = {
-        #"date": "datetime64[D]",
-        "Last": "bool",
+        "date": "datetime64[D]",
+        "Year": "int",
+        'month': "int",
+        "name": "str",
+        "INN": "str",
+        'owner': 'str',
         "N": "str",
         "E": "str",
+        'rad_N':'float',
+        "rad_E":'float',
         "prev_lic": "str",
-        #"prev_date": "datetime64[D]",
+        "prev_date": "datetime64[D]",
         "forw_lic": "str",
-        #"forw_date": "datetime64[D]",
-        "name": "str",
+        "forw_date": "datetime64[D]",
         "type": "str",
         "state": "str",
-        "INN": "str",
-        "Year": "int",
+        "Last": "bool",
+        "filter": 'str'
     }
 
     df = pd.DataFrame(raw_data).set_index("num")
@@ -84,7 +88,7 @@ def create_df(raw_data: list) -> pd.DataFrame:
     change_inn(df['owner'].unique().tolist())
     change_owners(df['INN'].unique().tolist())
 
-    df["owner"] = df["owner"].fillna(value=self.df["owner_full"], axis=0)
+    df["owner"] = df["owner"].fillna(value=df["owner_full"], axis=0)
     
     forms = {'ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО':'ЗАО',
                 'ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ':'ИП',
@@ -151,6 +155,8 @@ def create_df(raw_data: list) -> pd.DataFrame:
     df.loc[:,'rad_N'] = df['N'].map(arg=to_rads, na_action='ignore')
     df.loc[:,'rad_E'] = df['E'].map(arg=to_rads, na_action='ignore')
 
+    df['rad_N'] = pd.to_numeric(df['rad_N'], downcast='float', errors='coerce')
+    df['rad_E'] = pd.to_numeric(df['rad_E'], downcast='float', errors='coerce')
     #Добавление периодов
     df.loc[:,'month'] = df['date'].dt.to_period('M')
 
@@ -171,26 +177,22 @@ def create_df(raw_data: list) -> pd.DataFrame:
     )
     df = df[df["date"].notna()]
 
-    return df
+    df = df[list(types.keys())].reset_index()
 
-    def save():
-        """
-        Метод для сохранения результата обработки в ексель файл
-        """
+    return df.astype(dtype=types)
 
-        path = os.environ.get('DATA_FOLDER_PATH') 
-        .excel_path = os.path.join(path, f'{self.filter}.xlsx')
+def save_df(dataframe: [list | pd.DataFrame], name: str) -> None:
+    """
+    Функция для сохранения результата обработки в ексель файл
+    """
 
-        #TODO: добавиль столбец фильтр
-        save = (df.drop(labels=list(_cols.values())[5:], axis=1)
-            .astype(dtype=.types)
-            .where(~df.isnull(), "")
-            .reset_index()
-        )
+    excel_path = os.path.join(check_path(), '_data.xlsx')
 
-        save.to_excel(excel_writer=.excel_path,freeze_panes=(1, 0))
-        
-
+    if os.path.exists(excel_path):
+        with pd.ExcelWriter(path=excel_path, if_sheet_exists='replace', mode='a') as writer:
+            dataframe.to_excel(writer, sheet_name=name, freeze_panes=(1, 0), na_rep='')
+    else: 
+        dataframe.to_excel(excel_path, sheet_name=name, freeze_panes=(1, 0), na_rep='')
 
 def create_matrix(dataframe: pd.DataFrame) -> None:
     """
