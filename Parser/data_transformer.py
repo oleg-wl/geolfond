@@ -1,6 +1,7 @@
 #!venv/bin/python3
 import re
 import os
+import logging
 
 import pandas as pd
 import numpy as np
@@ -19,7 +20,7 @@ def create_df(raw_data: list) -> pd.DataFrame:
     """
 
     types = {
-        "date": "datetime64[D]",
+        "date": 'np.datetime64[D]',
         "Year": "int",
         'month': "int",
         "name": "str",
@@ -30,9 +31,9 @@ def create_df(raw_data: list) -> pd.DataFrame:
         'rad_N':'float',
         "rad_E":'float',
         "prev_lic": "str",
-        "prev_date": "datetime64[D]",
+        "prev_date": 'np.datetime64[D]',
         "forw_lic": "str",
-        "forw_date": "datetime64[D]",
+        "forw_date": 'np.datetime64[D]',
         "type": "str",
         "state": "str",
         "Last": "bool",
@@ -85,8 +86,13 @@ def create_df(raw_data: list) -> pd.DataFrame:
             except Exception:
                 continue
 
-    change_inn(df['owner'].unique().tolist())
-    change_owners(df['INN'].unique().tolist())
+    #: Оптимизация для фильтров не oil
+    logging.debug(f'Очистка данных о недропользователях')
+    
+    if df['filter'].str.contains('Углеводородное сырье').any():
+        change_inn(df['owner'].unique().tolist())
+        change_owners(df['INN'].unique().tolist())
+    logging.debug(f'Finished')
 
     df["owner"] = df["owner"].fillna(value=df["owner_full"], axis=0)
     
@@ -179,21 +185,37 @@ def create_df(raw_data: list) -> pd.DataFrame:
 
     df = df[list(types.keys())].reset_index()
 
+    logging.info(f'Данные обработаны {len(df.index)}')
+
+    #: Тесты
+    try: 
+        assert df['prew_full'].count() == df['prev_lic'].count(), f"Тест не пройден, prew_lic:{df['prev_lic'].count()}, prew_full:{df['prew_full'].count()}"
+
+        assert df['forw_full'].count() == df['forw_lic'].count(), f"Тест не пройден, forw_lic: {df['forw_lic'].count()}, forw_full: {df['forw_full'].count()}"
+
+        assert (df['N'].count() == df['coords'].count()) & (df['E'].count() == df['coords'].count()), f"Тест не пройден, N: {df['N'].count()}, E: {df['E'].count()}, coords: {df['coords'].count()}"
+
+        assert df['owner'].count() == df['owner_full'].count(), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
+        logging.info('Tests OK!')
+
+    except AssertionError as e:
+        logging.critical(e)
+    
     return df.astype(dtype=types)
 
-def save_df(dataframe: [list | pd.DataFrame], name: str) -> None:
+def save_df(dataframe: list | pd.DataFrame, name: str) -> None:
     """
     Функция для сохранения результата обработки в ексель файл
+
+    :param list  |  pd.DataFrame dataframe: датафрейм для сохранения в ексель
+    :param str name: фильтр для названия файла
     """
 
-    excel_path = os.path.join(check_path(), '_data.xlsx')
+    excel_path = os.path.join(check_path(), f'{name}_data.xlsx')
+    dataframe.to_excel(excel_path, sheet_name=name, freeze_panes=(1, 0), na_rep='')
 
-    if os.path.exists(excel_path):
-        with pd.ExcelWriter(path=excel_path, if_sheet_exists='replace', mode='a') as writer:
-            dataframe.to_excel(writer, sheet_name=name, freeze_panes=(1, 0), na_rep='')
-    else: 
-        dataframe.to_excel(excel_path, sheet_name=name, freeze_panes=(1, 0), na_rep='')
-
+    logging.info(f'Данные сохранены в {excel_path}')
+    
 def create_matrix(dataframe: pd.DataFrame) -> None:
     """
     Функция создает матрицу для меппенига для ГБЗ

@@ -9,8 +9,7 @@ import click
 import requests
 from art import tprint, art
 
-from Parser import data, client
-from Parser.headers import filter as _filter
+import Parser
 
 
 @click.command()
@@ -27,7 +26,7 @@ def filters():
     """
     Показать список доступных фильтров для downloads
     """
-    filter_list = _filter()
+    filter_list = Parser._filter()
     for key, value in filter_list.items():
         click.echo(f"-  {key}    для фильтра: {value[0:24]}...")
 
@@ -50,15 +49,16 @@ def download(filter: str):
     click.echo("Загрузка данных...")
 
     try:
-        data.create_df(client.get_data_from_reestr(filter=filter))
-        n = sum(x is None for x in data.df['forw_full']
-            ), len(data.df["date"])
+        data = Parser.client.get_data_from_reestr(filter)
+        df = Parser.create_df(data)
+        
+        n = sum(x is None for x in df['forw_full']
+            ), len(df["date"])
         click.echo("Данные загружены успешно. Всего лицензий: {:d}. Действующих лицензий: {:d}.".format(
                     n[1], n[0]
                 )
             )
-        data.save()
-        click.echo(f"Сохранение данных в {data.excel_path}")
+        Parser.save_df(df, filter)
         click.echo("Успех {n}\n".format(n=art("rock on2")))
 
     except requests.exceptions.Timeout as e:

@@ -1,15 +1,16 @@
 #!venv/bin/python3
 import logging
-from Parser import client
 import Parser
 
-logging.basicConfig(filemode='w', filename='log/logs.log', format='%(levelname)s, %(asctime)s: %(message)s (LINE: (%(lineno)d) [%(filename)s]', datefmt='%I:%M:%S %p', level=logging.INFO)
 
-def run_code():
+logging.basicConfig(format='%(levelname)s, %(asctime)s: %(message)s (LINE: (%(lineno)d) [%(filename)s]', datefmt='%I:%M:%S %p', level=logging.DEBUG)
+
+def parse_reestr_full() -> None:
+    #: Пропарсить весь реестр
     try:
-        f = Parser.filter()
+        f = Parser._filter()
         for i in f.keys():
-            data = client.get_data_from_reestr(filter=i)
+            data = Parser.client.get_data_from_reestr(filter=i)
             logging.info(f'загрузил {i}, записей {len(data)}') 
             df = Parser.create_df(data)
             logging.info(f'конвертнул {i}')
@@ -20,6 +21,12 @@ def run_code():
     except Exception as e:
         logging.critical(f"{e}")    
 
+def run_code() -> None:
+    #: Функция для скачивания только oil
+
+    data = Parser.client.get_data_from_reestr(filter='oil')
+    df = Parser.create_df(data)
+    Parser.save_df(df, 'oil')
 
 if __name__ == "__main__":
     run_code()
