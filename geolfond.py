@@ -24,9 +24,14 @@ def parse_reestr_full() -> None:
 def run_code() -> None:
     #: Функция для скачивания только oil
 
-    data = Parser.client.get_data_from_reestr(filter='oil')
+    data = Parser.client().get_data_from_reestr(filter='oil')
+    logging.info(f'загрузил oil, записей {len(data)}') 
+
     df = Parser.create_df(data)
+    logging.info(f'конвертнул')
+
     Parser.save_df(df, 'oil')
+    logging.info(f'сохранил')
 
 if __name__ == "__main__":
     run_code()

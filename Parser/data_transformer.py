@@ -185,7 +185,6 @@ def create_df(raw_data: list) -> pd.DataFrame:
 
     df = df[list(types.keys())].reset_index()
 
-    logging.info(f'Данные обработаны {len(df.index)}')
 
     #: Тесты
     try: 
@@ -196,8 +195,9 @@ def create_df(raw_data: list) -> pd.DataFrame:
         assert (df['N'].count() == df['coords'].count()) & (df['E'].count() == df['coords'].count()), f"Тест не пройден, N: {df['N'].count()}, E: {df['E'].count()}, coords: {df['coords'].count()}"
 
         assert df['owner'].count() == df['owner_full'].count(), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
-        logging.info('Tests OK!')
+        logging.DEBUG('Tests OK!')
 
+        logging.info(f'Данные обработаны {len(df.index)}')
     except AssertionError as e:
         logging.critical(e)
     

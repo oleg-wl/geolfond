@@ -7,6 +7,7 @@
 
 import os
 import requests
+import logging
 
 from .headers import url as _url
 from .headers import headers as _headers 
@@ -14,21 +15,29 @@ from .headers import json_data as _json_data
 from .headers import cols as _cols
 from .headers import filter as _filter
 
+from .reestr_config import ReestrConfig
+
 class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
-    basedir = os.path.abspath(os.path.dirname((__file__)))
-
-    #: Config variables
-    logfile = os.path.join(basedir, 'logs.log')
-
-    # Создание объекта сессии и настройка прокси если требуется
-    session = requests.Session()
-    #requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
-    session.verify = False 
-    session.proxies = {}
 
     def __init__(self):
 
+        _conf = ReestrConfig()
+
+        # Создание объекта сессии и настройка прокси если требуется
+        self.session = requests.Session()
+
+        if _conf.config_proxy is not None:
+            self.session.proxies = _conf.config_proxy
+
+        if _conf.proxy_auth is not None:
+            self.session.auth = _conf.proxy_auth
+
+        #requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
+        if _conf.config_ssl is not None:
+            self.session.verify = _conf.config_ssl
+        else: self.session.verify = False 
+        
         # Переменные для запроса
         self.url: str = _url
         self.headers: dict = _headers
@@ -40,32 +49,6 @@ class ReestrRequest:
         # Полученное количество записей подставить в сдлвать для следующего запроса
         self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = 1
 
-    @classmethod
-    def config(cls, config_path='config.ini'):
-        """Запуск конфигурации из файла конфигурации config.ini"""
-        config_path = os.path.join(cls.basedir, config_path)
-
-        # Блок проверки наличия config.ini
-        if os.path.exists(config_path):
-            from configparser import ConfigParser
-
-            config_file = ConfigParser()
-            config_file.read(config_path)
-
-            os.environ['DATA_FOLDER_PATH'] = os.path.abspath(config_file["DEFAULT"]["data_folder"])
-            cls.logfile = os.path.abspath(config_file["DEFAULT"]["logfile"])
-            
-
-            # Настройки для прокси через российский VDS
-            if "PROXY" in config_file:
-                proxy_host = config_file["PROXY"]["proxy_host"]
-                proxy_port = config_file["PROXY"]["proxy_port"]
-                cls.session.proxies = {"https": f"socks5://{proxy_host}:{proxy_port}"}
-
-            # Настройка SSL
-            if "SSL" in config_file:
-                cert = os.path.relpath(config_file["SSL"]["key"], os.getcwd())
-                cls.session.verify = cert
 
     def get_record_count(self):
         """
