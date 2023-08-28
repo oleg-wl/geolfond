@@ -20,7 +20,7 @@ def create_df(raw_data: list) -> pd.DataFrame:
     """
 
     types = {
-        "date": 'np.datetime64[D]',
+        "date": 'datetime[ns]',
         "Year": "int",
         'month': "int",
         "name": "str",
@@ -31,9 +31,9 @@ def create_df(raw_data: list) -> pd.DataFrame:
         'rad_N':'float',
         "rad_E":'float',
         "prev_lic": "str",
-        "prev_date": 'np.datetime64[D]',
+        "prev_date": 'datetime[ns]',
         "forw_lic": "str",
-        "forw_date": 'np.datetime64[D]',
+        "forw_date": 'datetime[ns]',
         "type": "str",
         "state": "str",
         "Last": "bool",
@@ -183,7 +183,6 @@ def create_df(raw_data: list) -> pd.DataFrame:
     )
     df = df[df["date"].notna()]
 
-    df = df[list(types.keys())].reset_index()
 
 
     #: Тесты
@@ -195,12 +194,15 @@ def create_df(raw_data: list) -> pd.DataFrame:
         assert (df['N'].count() == df['coords'].count()) & (df['E'].count() == df['coords'].count()), f"Тест не пройден, N: {df['N'].count()}, E: {df['E'].count()}, coords: {df['coords'].count()}"
 
         assert df['owner'].count() == df['owner_full'].count(), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
-        logging.DEBUG('Tests OK!')
 
-        logging.info(f'Данные обработаны {len(df.index)}')
-    except AssertionError as e:
-        logging.critical(e)
-    
+        logging.info(f'Данные обработаны {len(df.Last)}')
+
+    except AssertionError as err:
+        logging.warning(err)
+    finally:
+
+        df = df[list(types.keys())].reset_index()
+
     return df.astype(dtype=types)
 
 def save_df(dataframe: list | pd.DataFrame, name: str) -> None:

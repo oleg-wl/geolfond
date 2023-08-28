@@ -32,7 +32,7 @@ class ReestrConfig:
 
                 self.config_proxy = {"https": f"socks5://{proxy_host}:{proxy_port}"}
 
-                if proxy_user == 'None':
+                if proxy_user != 'None':
                     self.proxy_auth = (proxy_user, proxy_pass)
                 
             # Настройка SSL

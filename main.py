@@ -49,7 +49,7 @@ def download(filter: str):
     click.echo("Загрузка данных...")
 
     try:
-        data = Parser.client.get_data_from_reestr(filter)
+        data = Parser.client().get_data_from_reestr(filter)
         df = Parser.create_df(data)
         
         n = sum(x is None for x in df['forw_full']

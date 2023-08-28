@@ -5,9 +5,7 @@
 Модуль для запроса к серверу и получения сырых данных
 """
 
-import os
 import requests
-import logging
 
 from .headers import url as _url
 from .headers import headers as _headers 
