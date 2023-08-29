@@ -20,9 +20,9 @@ def create_df(raw_data: list) -> pd.DataFrame:
     """
 
     types = {
-        "date": 'datetime[ns]',
+        "date": 'datetime64[ns]',
         "Year": "int",
-        'month': "int",
+        'month': "str",
         "name": "str",
         "INN": "str",
         'owner': 'str',
@@ -31,9 +31,10 @@ def create_df(raw_data: list) -> pd.DataFrame:
         'rad_N':'float',
         "rad_E":'float',
         "prev_lic": "str",
-        "prev_date": 'datetime[ns]',
+        "prev_date": 'datetime64[ns]',
+        "prev_owner":"str",
         "forw_lic": "str",
-        "forw_date": 'datetime[ns]',
+        "forw_date": 'datetime64[ns]',
         "type": "str",
         "state": "str",
         "Last": "bool",

@@ -5,6 +5,7 @@
 Модуль для запроса к серверу и получения сырых данных
 """
 
+from multiprocessing import context
 import requests
 
 from .headers import url as _url

@@ -39,3 +39,10 @@ class ReestrConfig:
             if "SSL" in config_file:
                 cert = os.path.relpath(config_file["SSL"]["key"], os.getcwd())
                 self.config_ssl = cert
+
+            if "email" in config_file:
+                self.smtp_server = config_file['email']['smtp_server']
+                self.smtp_port = config_file['email']['smtp_port']
+                self.smtp_email = config_file['email']['smtp_email']
+                self.smtp_password = config_file['email']['smtp_password']
+                
