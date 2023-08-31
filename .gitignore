@@ -9,6 +9,9 @@ config.ini
 !example.*.ini
 *.pem
 vs.code
+*venv*
+database.db
+nohup.out
 *.db
 
 # Byte-compiled / optimized / DLL files

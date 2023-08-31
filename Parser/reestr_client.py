@@ -5,10 +5,7 @@
 Модуль для запроса к серверу и получения сырых данных
 """
 
-import os
 import requests
-import socks
-import socket
 
 from .headers import url as _url
 from .headers import headers as _headers 
@@ -16,86 +13,79 @@ from .headers import json_data as _json_data
 from .headers import cols as _cols
 from .headers import filter as _filter
 
-class ReestrRequest(object):
+from .reestr_config import ReestrConfig
+from .reestr_config import parser_logger
+
+class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
 
     def __init__(self):
+
+        _conf = ReestrConfig()
+
+        # Создание объекта сессии и настройка прокси если требуется
+        self.session = requests.Session()
+
+        if _conf.config_proxy is not None:
+            self.session.proxies = _conf.config_proxy
+
+        if _conf.proxy_auth is not None:
+            self.session.auth = _conf.proxy_auth
+
+        #requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
+        if _conf.config_ssl is not None:
+            self.session.verify = _conf.config_ssl
+        else: self.session.verify = False 
+        
         # Переменные для запроса
-        self.url = _url
-        self.headers = _headers
+        self.url: str = _url
+        self.headers: dict = _headers
 
         # Подстановка нужного фильтра в POST запрос
-        self.json_data = _json_data
+        self.json_data: dict = _json_data
 
         # Количество записей в запросе. Для получения всех записей надо делать тестовый запрос
         # Полученное количество записей подставить в сдлвать для следующего запроса
         self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = 1
-        
 
-    def config(self):
-        """Запуск конфигурации"""
-        
-        # Создание объекта сессии:
-        self.session = requests.Session()
 
-        # Блок проверки наличия config.ini
-        if os.path.exists("Parser/config.ini"):
-            from configparser import ConfigParser
 
-            config = ConfigParser()
-            config.read("Parser/config.ini")
-
-            os.environ['DATA_FOLDER_PATH'] = os.path.abspath(config["DEFAULT"]["data_folder"])
-            self.logfile = os.path.abspath(config["DEFAULT"]["logfile"])
-            
-
-            # Настройки для прокси через российский VDS
-            if "PROXY" in config:
-                proxy_host = config["PROXY"]["proxy_host"]
-                proxy_port = config["PROXY"]["proxy_port"]
-
-                socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
-                socket.socket = socks.socksocket
-                self.session.proxies = {"https": f"socks5://{proxy_host}:{proxy_port}"}
-
-            # Настройка SSL
-            if "SSL" in config:
-                cert = os.path.relpath(config["SSL"]["key"], os.getcwd())
-                self.session.verify = cert
-        else:
-            requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
-            self.path = os.getcwd()
-
-    def get_record_count(self, filter: str = "oil"):
+    def get_records(self, headers: dict, json_data: dict) -> int | dict:
         """
-        Метод для получения количества записей.
+        Метод для получения количества записей. Сначала нужен dummy запрос для получения количества записей в реестре
         """
-        
-        self.filter = _filter(filter) 
-        self.json_data["RawOlapSettings"]["measureGroup"]["filters"][0][0][
-            "selectedFilterValues"
-        ] = [self.filter[1]]
 
         #Создание запроса
         response = self.session.post(
-            self.url, headers=self.headers, json=self.json_data
-        ).json()
-        self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = int(
-            response["result"]["recordCount"]
+            self.url, headers=headers, json=json_data
         )
 
-    def get_data_from_reestr(self, filter: str = "oil"):
+        response = response.json()
+        numrec = int(response["result"]["recordCount"])
+
+        return numrec, response
+    
+    @parser_logger('client')
+    def get_data_from_reestr(self, filter: str = "oil") -> list:
         """
         Метод делает запросы к базе данных Роснедр.
         Возращает плоский Python-словарь с данными.
         """
+        # Переменная фильтра для запроса
+        self.filter = _filter(filter) 
 
-        # Запрос для получения всех записей выгрузки
-        self.get_record_count(filter)
-        response = self.session.post(
-            self.url, headers=self.headers, json=self.json_data
-        ).json()
-        #return response.text
+        #: Добпавление значения фильтра в заголовок запроса
+        self.json_data["RawOlapSettings"]["measureGroup"]["filters"][0][0][
+            "selectedFilterValues"
+        ] = [self.filter[1]]
+
+        #: Добавление количества записей в заголовок запроса
+        nr = self.get_records(headers=self.headers, json_data=self.json_data)
+        self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = nr[0]
+        
+        #: Получить данные запросу с nr записей
+        response = self.get_records(headers=self.headers, json_data=self.json_data
+        )[1]
 
         # Подготовка данных
         response["result"]["data"]["cols"][16] = ["Дата.1"]
@@ -104,5 +94,12 @@ class ReestrRequest(object):
         cols = [x.replace(k, v) for x in [v[0] for v in response["result"]["data"]["cols"]] for k, v in _cols.items() if x == k]
         vals = response["result"]["data"]["values"]
 
-        #Возващает словарь с данными 
-        return dict(zip(cols, vals)), self.filter[0]
+        # Плоский список словарей-строк в которых столбец:значение
+        data: list = [{key:vals[n][i] for n, key in enumerate(cols)} for i in range(len(vals[0]))]
+        
+        #: добавление столбца с фильтром
+        for i in data:
+            i['filter'] = self.filter[1]
+
+        #Возващает список словарей-строк и фильтр
+        return data

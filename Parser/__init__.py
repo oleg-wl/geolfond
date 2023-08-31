@@ -1,18 +1,12 @@
-from .reestr_client import ReestrRequest as _client 
-from .data_transformer import ReestrData as _data 
+"""
+Модуль для парсинга и подготовки данных из реестра Росгеолфонда для загрузки в BI и визуализации
+"""
+from .reestr_client import ReestrRequest as client 
+from .reestr_config import ReestrConfig as config
+from .data_sender import EmailSender as sender
+from .reestr_config import config_logger
 
+from .data_transformer import create_df, create_matrix, save_df
+from .headers import filter as _filter
 
-__version__ = '0.1.0'
-__all__ = ['client', 'data']
-
-client = _client()
-client.config()
-
-data = _data()
-
-
-
-
-#from .module1 import SomeClass
-#from .module2 import some_function
-   
+__version__ = '2.1.0'
