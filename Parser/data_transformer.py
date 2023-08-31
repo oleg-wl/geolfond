@@ -1,15 +1,11 @@
 #!venv/bin/python3
 import re
 import os
-import logging
 
 import pandas as pd
 import numpy as np
 
-
-def check_path():
-    return os.environ['DATA_FOLDER_PATH'] if os.environ.get('DATA_FOLDER_PATH') is not None else os.path.abspath('data')
- 
+from .reestr_config import config_logger, check_path
 
 def create_df(raw_data: list) -> pd.DataFrame: 
     """
@@ -18,6 +14,7 @@ def create_df(raw_data: list) -> pd.DataFrame:
     :param list raw_data: список словарей ответа api
     :return pd.DataFrame: очищенные данные
     """
+    logger = config_logger('dataframe')
 
     types = {
         "date": 'datetime64[ns]',
@@ -77,23 +74,23 @@ def create_df(raw_data: list) -> pd.DataFrame:
             try:
                 query = df.loc[(df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
                 df.loc[df['owner'] == owner, 'INN'] = query.iloc[0,0]
-            except Exception:
+            except IndexError:
                 continue
     def change_owners(inns):
         for inn in inns:
             try:
                 query = df.loc[(df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
                 df.loc[df['INN'] == inn, 'owner'] = query.iloc[0,1]
-            except Exception:
+            except IndexError:
                 continue
 
     #: Оптимизация для фильтров не oil
-    logging.debug(f'Очистка данных о недропользователях')
     
     if df['filter'].str.contains('Углеводородное сырье').any():
+        logger.debug(f'Очистка данных о недропользователях')
         change_inn(df['owner'].unique().tolist())
         change_owners(df['INN'].unique().tolist())
-    logging.debug(f'Finished')
+        logger.debug(f'Очистка данных завершена')
 
     df["owner"] = df["owner"].fillna(value=df["owner_full"], axis=0)
     
@@ -184,6 +181,9 @@ def create_df(raw_data: list) -> pd.DataFrame:
     )
     df = df[df["date"].notna()]
 
+    #: Заменить все nan и 0 в координатах
+    #df = df.replace(to_replace=['nan'], value=pd.NA)
+
 
 
     #: Тесты
@@ -196,15 +196,15 @@ def create_df(raw_data: list) -> pd.DataFrame:
 
         assert df['owner'].count() == df['owner_full'].count(), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
 
-        logging.info(f'Данные обработаны {len(df.Last)}')
+        logger.info(f'Тесты ОК, всего строк: {len(df.Last)}')
 
     except AssertionError as err:
-        logging.warning(err)
+        logger.warning(err)
     finally:
 
         df = df[list(types.keys())].reset_index()
 
-    return df.astype(dtype=types)
+    return df #.astype(dtype=types)
 
 def save_df(dataframe: list | pd.DataFrame, name: str) -> None:
     """
@@ -217,13 +217,15 @@ def save_df(dataframe: list | pd.DataFrame, name: str) -> None:
     excel_path = os.path.join(check_path(), f'{name}_data.xlsx')
     dataframe.to_excel(excel_path, sheet_name=name, freeze_panes=(1, 0), na_rep='')
 
-    logging.info(f'Данные сохранены в {excel_path}')
+    logger = config_logger('saving_df')
+    logger.info(f'Данные сохранены в {excel_path}')
     
 def create_matrix(dataframe: pd.DataFrame) -> None:
     """
     Функция создает матрицу для меппенига для ГБЗ
     :param pd.DataFrame dataframe: Пандас Датайфрейм с очищенными данными
     """
+    #TODO добавить логгер
     #Очистить данные о предыдущих лицензиях
     dataframe['prew_'] = dataframe['prew_full'].str.replace('\n', ':', regex=True).str.replace(' от \d\d\.\d\d', '', regex=True)
 

@@ -1,56 +1,55 @@
-from __future__ import print_function
+import glob
 
-import os.path
+import smtplib, ssl
+from email.message import EmailMessage
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+from .reestr_config import ReestrConfig
+from .reestr_config import check_logfile, check_path, config_logger
+from .reestr_config import EmptyFolder
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+class EmailSender:
 
+    def __init__(self) -> None:
 
-def main():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail labels.
-    """
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+        self.logger = config_logger('email-sender')
+        self.conf = ReestrConfig()
+        self.logfile = check_logfile()
 
-    try:
-        # Call the Gmail API
-        service = build('gmail', 'v1', credentials=creds)
-        results = service.users().labels().list(userId='me').execute()
-        labels = results.get('labels', [])
+        folder = check_path()
+        self.files = glob.glob(rf'{folder}/*.xlsx')
 
-        if not labels:
-            print('No labels found.')
-            return
-        print('Labels:')
-        for label in labels:
-            print(label['name'])
+    def create_message(self) -> EmailMessage:
 
-    except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
-        print(f'An error occurred: {error}')
+        msg = EmailMessage()
+        msg['Subject'] = 'Выгрузка данных для дашборда'
+        msg['From'] = self.conf.smtp_email
+        msg['To'] = self.conf.smtp_to
 
+        if len(self.files) > 0: 
+            for file in self.files:
+                
+                with open(file, 'rb') as f:
+                    attach = f.read()
 
-if __name__ == '__main__':
-    main()
+                filename = file.rsplit(sep='/')[-1]
+                 
+                msg.add_attachment(attach, maintype='application', subtype='xlsx', filename=filename)
+            self.logger.info(f'{len(self.files)} добавлено во вложения')
+            
+        else: 
+            self.logger.debug(f'В папке {self.files} нет файлов')
+            raise EmptyFolder(f'В папке {self.files} нет файлов')
+
+        with open(self.logfile, 'rb') as log:
+            attach = log.read()
+        msg.add_attachment(attach, maintype='application', subtype='txt', filename=self.logfile) 
+        msg.add_header('Content-Disposition', 'attachment')
+
+        return msg
+
+    def send_message(self, msg) -> None:
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(self.conf.smtp_server, port=self.conf.smtp_port, context=context) as server:
+            server.login(user=self.conf.smtp_email, password=self.conf.smtp_password)
+            server.send_message(msg)
+        self.logger.info(f'Выгрузка отправлено на адрес {self.conf.smtp_to}')

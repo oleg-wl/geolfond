@@ -49,7 +49,8 @@ def download(filter: str):
     click.echo("Загрузка данных...")
 
     try:
-        data = Parser.client().get_data_from_reestr(filter)
+        parser = Parser.client()
+        data = parser.get_data_from_reestr(filter)
         df = Parser.create_df(data)
         
         n = sum(x is None for x in df['forw_full']
@@ -59,6 +60,8 @@ def download(filter: str):
                 )
             )
         Parser.save_df(df, filter)
+        click.echo('ДАнные сохранены. Генерирую матрицу.')
+        Parser.create_matrix(df)
         click.echo("Успех {n}\n".format(n=art("rock on2")))
 
     except requests.exceptions.Timeout as e:

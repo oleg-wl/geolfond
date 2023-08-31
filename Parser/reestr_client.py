@@ -5,7 +5,6 @@
 Модуль для запроса к серверу и получения сырых данных
 """
 
-from multiprocessing import context
 import requests
 
 from .headers import url as _url
@@ -15,6 +14,7 @@ from .headers import cols as _cols
 from .headers import filter as _filter
 
 from .reestr_config import ReestrConfig
+from .reestr_config import parser_logger
 
 class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
@@ -49,19 +49,23 @@ class ReestrRequest:
         self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = 1
 
 
-    def get_record_count(self):
+
+    def get_records(self, headers: dict, json_data: dict) -> int | dict:
         """
-        Метод для получения количества записей.
+        Метод для получения количества записей. Сначала нужен dummy запрос для получения количества записей в реестре
         """
 
         #Создание запроса
         response = self.session.post(
-            self.url, headers=self.headers, json=self.json_data
-        ).json()
-        self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = int(
-            response["result"]["recordCount"]
+            self.url, headers=headers, json=json_data
         )
 
+        response = response.json()
+        numrec = int(response["result"]["recordCount"])
+
+        return numrec, response
+    
+    @parser_logger('client')
     def get_data_from_reestr(self, filter: str = "oil") -> list:
         """
         Метод делает запросы к базе данных Роснедр.
@@ -69,16 +73,19 @@ class ReestrRequest:
         """
         # Переменная фильтра для запроса
         self.filter = _filter(filter) 
-        
+
+        #: Добпавление значения фильтра в заголовок запроса
         self.json_data["RawOlapSettings"]["measureGroup"]["filters"][0][0][
             "selectedFilterValues"
         ] = [self.filter[1]]
 
-        # Запрос для получения всех записей выгрузки
-        self.get_record_count()
-        response = self.session.post(
-            self.url, headers=self.headers, json=self.json_data
-        ).json()
+        #: Добавление количества записей в заголовок запроса
+        nr = self.get_records(headers=self.headers, json_data=self.json_data)
+        self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = nr[0]
+        
+        #: Получить данные запросу с nr записей
+        response = self.get_records(headers=self.headers, json_data=self.json_data
+        )[1]
 
         # Подготовка данных
         response["result"]["data"]["cols"][16] = ["Дата.1"]
