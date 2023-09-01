@@ -27,8 +27,10 @@ def run_code() -> None:
     Parser.save_df(df, 'oil')
 
     x = Parser.sender()
-    msg = x.create_message()
+    msg = x.create_message(all=False, filename='oil_data.xlsx')
     x.send_message(msg)
+    msg1 = x.create_message(all=True)
+    x.send_message(msg1)
 
 if __name__ == "__main__":
     run_code()
