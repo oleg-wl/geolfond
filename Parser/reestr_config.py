@@ -1,5 +1,9 @@
 
-"""Конфигуратор из файла конфигурации config.ini"""
+""" 
+Конфигуратор из файла конфигурации config.ini
+Также функции пути для папки с данными и конфигами 
+Функция для создания объекта логгинга и декоратор для логгирования ошибок при загрузке данных
+"""
 import os
 from functools import wraps
 import logging
@@ -8,9 +12,19 @@ from requests.exceptions import JSONDecodeError, Timeout, RequestException
 
 from configparser import ConfigParser
 
-class ReestrConfig:
+def create_config(cf_path='config.ini'):
     basedir = os.path.abspath(os.path.dirname((__file__)))
-    config_path = os.path.join(basedir, 'config.ini')
+    config_path = os.path.join(basedir, cf_path)
+
+    if os.path.exists(config_path):
+
+        config_file = ConfigParser()
+        config_file.read(config_path)
+    else: raise ValueError(f'Неверный путь к конфиг файлу')
+
+    return config_file
+
+class ReestrConfig:
 
     def __init__(self):
 
@@ -18,7 +32,6 @@ class ReestrConfig:
         self.proxy_auth = None
         self.config_ssl = None
 
-        if os.path.exists(self.config_path):
             config_file = ConfigParser()
             config_file.read(self.config_path)
         

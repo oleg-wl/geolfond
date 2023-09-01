@@ -1,10 +1,11 @@
+from configparser import NoSectionError
 import glob
 import os
 
 import smtplib, ssl
 from email.message import EmailMessage
 
-from .reestr_config import ReestrConfig
+from .reestr_config import create_config
 from .reestr_config import check_logfile, check_path, config_logger
 from .reestr_config import EmptyFolder
 
@@ -13,9 +14,19 @@ class EmailSender:
     def __init__(self) -> None:
 
         self.logger = config_logger('email-sender')
-        self.conf = ReestrConfig()
-        self.logfile = check_logfile()
 
+        self.conf = create_config(cf_path='config.ini')
+        if self.conf.has_section('emai'):
+            self.smtp_user = self.conf.get('email', 'smtp_user')
+            self.smtp_pass = self.conf.get('email', 'smtp_password')
+            self.smtp_server = self.conf.get('email', 'smtp_server')
+            self.smtp_port = self.conf.get('email', 'smtp_port')
+            self.smtp_to = self.conf.get('email', 'smtp_to')
+        else: 
+            self.logger.exception(NoSectionError) 
+            raise 
+        
+        self.logfile = check_logfile()
         self.folder = check_path()
         self.files = glob.glob(rf'{self.folder}/*.xlsx')
         #: проверка что в папке есть файлы для отправки
@@ -23,7 +34,7 @@ class EmailSender:
             self.logger.debug(f'В папке {self.files} нет файлов')
             raise EmptyFolder(f'В папке {self.files} нет файлов')
 
-        self.user = self.conf.smtp_email or None
+        self.user = self.smtp_user or None
         
 
     def create_message(self, all: bool = False, filename: str = None) -> EmailMessage:
@@ -37,8 +48,8 @@ class EmailSender:
 
         msg = EmailMessage()
         msg['Subject'] = 'Выгрузка данных для дашборда'
-        msg['From'] = self.conf.smtp_email
-        msg['To'] = self.conf.smtp_to
+        msg['From'] = self.smtp_user
+        msg['To'] = self.smtp_to
 
         #: проверка типов
         if (not all) and (filename is None):
@@ -85,10 +96,10 @@ class EmailSender:
         :param EmailMessage msg: сообщение из метода create_message
         """
         context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(self.conf.smtp_server, port=self.conf.smtp_port, context=context) as server:
-            server.login(user=self.conf.smtp_email, password=self.conf.smtp_password)
+        with smtplib.SMTP_SSL(self.smtp_server, port=self.smtp_port, context=context) as server:
+            server.login(user=self.smtp_user, password=self.smtp_pass)
             server.send_message(msg)
-        self.logger.info(f'Выгрузка отправлено на адрес {self.conf.smtp_to}')
+        self.logger.info(f'Выгрузка отправлено на адрес {self.smtp_pass}')
 
     def error_log_message():
         #: Отделный метод для отправки сообщения в случае ошибки
