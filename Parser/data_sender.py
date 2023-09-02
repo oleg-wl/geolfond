@@ -32,7 +32,7 @@ class EmailSender:
         #: проверка что в папке есть файлы для отправки
         if len(self.files) == 0: 
             self.logger.debug(f'В папке {self.files} нет файлов')
-            raise EmptyFolder(f'В папке {self.files} нет файлов')
+            raise EmptyFolder()
 
         self.user = self.smtp_user or None
         
@@ -82,10 +82,6 @@ class EmailSender:
             
          
 
-        with open(self.logfile, 'rb') as log:
-            attach = log.read()
-        msg.add_attachment(attach, maintype='application', subtype='txt', filename=self.logfile) 
-        msg.add_header('Content-Disposition', 'attachment')
 
         return msg
 
@@ -101,7 +97,17 @@ class EmailSender:
             server.send_message(msg)
         self.logger.info(f'Выгрузка отправлено на адрес {self.smtp_pass}')
 
-    def error_log_message():
-        #: Отделный метод для отправки сообщения в случае ошибки
-        #TODO сделать как декоратор
-        pass
+    def create_log_message(self) -> EmailMessage:
+
+
+        msg = EmailMessage()
+        msg['Subject'] = 'Ошибка выгрузки. Лог файл'
+        msg['From'] = self.smtp_user
+        msg['To'] = self.smtp_to
+
+        #: msg
+        with open(self.logfile, 'rb') as log:
+            attach = log.read()
+        msg.add_attachment(attach, maintype='application', subtype='txt', filename=self.logfile) 
+        msg.add_header('Content-Disposition', 'attachment')
+        return msg

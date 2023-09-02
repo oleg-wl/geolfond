@@ -132,12 +132,11 @@ def parser_logger(logger_name: str = __name__):
     return added_logger
 
 class EmptyFolder(Exception):
-    def __init__(self, message: str) -> Exception:
-        self.message = message
-        super().__init__(self.message)
+    def __init__(self) -> Exception:
+        super().__init__(self)
 
     def __str__(self) -> str:
-        return f'EmptyFolder: {self.message}'
+        return f'EmptyFolder: в папке нет файлов'
 
 
         

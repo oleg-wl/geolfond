@@ -19,18 +19,26 @@ def parse_reestr_full() -> None:
 def run_code() -> None:
     #: Функция для скачивания только oil
 
-    parser = Parser.client()
-    data = parser.get_data_from_reestr(filter='oil')
+    try:
+        logger = Parser.config_logger('geolfond')
+        parser = Parser.client()
+        logger.info('Начинаю загрузку')
+        data = parser.get_data_from_reestr(filter='oil')
 
-    df = Parser.create_df(data)
+        df = Parser.create_df(data)
 
-    Parser.save_df(df, 'oil')
+        Parser.save_df(df, 'oil')
 
-    x = Parser.sender()
-    msg = x.create_message(all=False, filename='oil_data.xlsx')
-    x.send_message(msg)
-    msg1 = x.create_message(all=True)
-    x.send_message(msg1)
+        x = Parser.sender()
+        msg = x.create_message(all=False, filename='oil_data.xlsx')
+        x.send_message(msg)
+    except: 
+        logger.critical('Ошибка выгрузки')
+        x = Parser.sender()
+        msg = x.create_log_message()
+        x.send_message(msg)
+
+        raise
 
 if __name__ == "__main__":
     run_code()
