@@ -12,66 +12,37 @@ from requests.exceptions import JSONDecodeError, Timeout, RequestException
 
 from configparser import ConfigParser
 
-def create_config(cf_path='config.ini'):
-    basedir = os.path.abspath(os.path.dirname((__file__)))
-    config_path = os.path.join(basedir, cf_path)
+cf_path = 'config.ini' #NOTE: можно изменить путь к конфиг файлу
+basedir = os.path.abspath(os.path.dirname((__file__)))
+config_path = os.path.join(basedir, cf_path)
 
-    if os.path.exists(config_path):
+def create_config(path: os.path = config_path) -> ConfigParser:
+    """
+    Базовая функция для создания конфига
+
+    :param str cf_path: путь к конфиг ини, defaults to 'config.ini'
+    :raises ValueError: если нет файла
+    :return _type_: объект конфигпарсера
+    """
+
+    if os.path.exists(path):
 
         config_file = ConfigParser()
-        config_file.read(config_path)
+        config_file.read(path)
     else: raise ValueError(f'Неверный путь к конфиг файлу')
 
     return config_file
 
-class ReestrConfig:
-
-    def __init__(self):
-
-        self.config_proxy = None
-        self.proxy_auth = None
-        self.config_ssl = None
-
-            config_file = ConfigParser()
-            config_file.read(self.config_path)
-        
-            os.environ['DATA_FOLDER_PATH'] = os.path.abspath(config_file["DEFAULT"]["data_folder"])
-
-            os.environ['LOGFILE'] = os.path.abspath(config_file["DEFAULT"]["logfile"])
-
-            
-
-            # Настройки для прокси через российский VDS
-            if "PROXY" in config_file:
-                proxy_host = config_file["PROXY"]["proxy_host"]
-                proxy_port = config_file["PROXY"]["proxy_port"]
-                proxy_user = config_file["PROXY"]["proxy_user"]
-                proxy_pass = config_file["PROXY"]["proxy_pass"]
-
-                self.config_proxy = {"https": f"socks5://{proxy_host}:{proxy_port}"}
-
-                if proxy_user != 'None':
-                    self.proxy_auth = (proxy_user, proxy_pass)
-                
-            # Настройка SSL
-            if "SSL" in config_file:
-                cert = os.path.relpath(config_file["SSL"]["key"], os.getcwd())
-                self.config_ssl = cert
-
-            if "email" in config_file:
-                self.smtp_server = config_file['email']['smtp_server']
-                self.smtp_port = config_file['email']['smtp_port']
-                self.smtp_email = config_file['email']['smtp_user']
-                self.smtp_password = config_file['email']['smtp_password']
-                self.smtp_to = config_file['email']['smtp_to']
-            
-
 #:functions for check default paths 
 def check_path() -> os.PathLike:
-    return os.environ['DATA_FOLDER_PATH'] if os.environ.get('DATA_FOLDER_PATH') is not None else os.path.abspath('data')
+    c = create_config(config_path)
+    p = c.get('PATHS','data_folder', fallback=None)
+    return p if p is not None else os.path.abspath('data')
 
 def check_logfile():
-    return os.environ['LOGFILE'] if os.environ.get('LOGFILE') is not None else os.path.abspath('log/defaultlog.log')
+    c = create_config(config_path)
+    p = c.get('PATHS', 'logfile', fallback=None)
+    return p if p is not None else os.path.abspath('log./logfile.log')
 
 def config_logger(name: str = __name__):
     """
@@ -116,16 +87,16 @@ def parser_logger(logger_name: str = __name__):
                 logger.info('Данные загружены успешно')
             except JSONDecodeError as j_err:
                 logger.error(f'Вернулся пустой JSON: {j_err}')
-                raise
+                raise j_err
             except Timeout as conn_err:
                 logger.error(f'Timeout error: {conn_err}. Доступ только из РФ. Добавь [PROXY] в config.ini')
-                raise
+                raise conn_err
             except RequestException as conn_err:
                 logger.error(f'Ошибка подключения {conn_err}')
-                raise
+                raise conn_err
             except Exception as e:
                 logger.exception(f'{e}')
-                raise
+                raise e
                 
             return result
         return wrapper

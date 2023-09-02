@@ -2,7 +2,6 @@
 Модуль для парсинга и подготовки данных из реестра Росгеолфонда для загрузки в BI и визуализации
 """
 from .reestr_client import ReestrRequest as client 
-from .reestr_config import ReestrConfig as config
 from .data_sender import EmailSender as sender
 from .reestr_config import config_logger
 

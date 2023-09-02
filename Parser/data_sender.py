@@ -15,8 +15,8 @@ class EmailSender:
 
         self.logger = config_logger('email-sender')
 
-        self.conf = create_config(cf_path='config.ini')
-        if self.conf.has_section('emai'):
+        self.conf = create_config()
+        if self.conf.has_section('email'):
             self.smtp_user = self.conf.get('email', 'smtp_user')
             self.smtp_pass = self.conf.get('email', 'smtp_password')
             self.smtp_server = self.conf.get('email', 'smtp_server')
@@ -24,7 +24,7 @@ class EmailSender:
             self.smtp_to = self.conf.get('email', 'smtp_to')
         else: 
             self.logger.exception(NoSectionError) 
-            raise 
+            raise  NoSectionError
         
         self.logfile = check_logfile()
         self.folder = check_path()
@@ -95,7 +95,7 @@ class EmailSender:
         with smtplib.SMTP_SSL(self.smtp_server, port=self.smtp_port, context=context) as server:
             server.login(user=self.smtp_user, password=self.smtp_pass)
             server.send_message(msg)
-        self.logger.info(f'Выгрузка отправлено на адрес {self.smtp_pass}')
+        self.logger.info(f'Выгрузка отправлено на адрес {self.smtp_to}')
 
     def create_log_message(self) -> EmailMessage:
 

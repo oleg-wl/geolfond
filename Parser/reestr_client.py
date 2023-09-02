@@ -13,30 +13,41 @@ from .headers import json_data as _json_data
 from .headers import cols as _cols
 from .headers import filter as _filter
 
-from .reestr_config import ReestrConfig
-from .reestr_config import parser_logger
+from .reestr_config import config_path, create_config
+from .reestr_config import config_logger, parser_logger
 
 class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
 
     def __init__(self):
 
-        _conf = ReestrConfig()
-
         # Создание объекта сессии и настройка прокси если требуется
         self.session = requests.Session()
 
-        if _conf.config_proxy is not None:
-            self.session.proxies = _conf.config_proxy
+        # Получение ключей config.ini
+        self.config = create_config(config_path)
+        self.logger = config_logger('client')
 
-        if _conf.proxy_auth is not None:
-            self.session.auth = _conf.proxy_auth
+        if self.config.has_section('SSL'):
+            s = 'SSL'
+            self.session.verify = self.config.get(s, 'key')
+        else: 
+            #requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
+            self.logger.warning('Отсутствует SSL сертификат')
+            self.session.verify = False
 
-        #requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
-        if _conf.config_ssl is not None:
-            self.session.verify = _conf.config_ssl
-        else: self.session.verify = False 
-        
+        if self.config.has_section('PROXY'):
+            s = 'PROXY'
+            prh = self.config.get(s, 'proxy_host')
+            prp = self.config.get(s, 'proxy_port')
+            pru = self.config.get(s, 'proxy_user')
+            prpass = self.config.get(s, 'proxy_pass')
+
+            if pru is not None and prpass is not None:
+                self.session.proxies = {"https": f"socks5://{pru}:{prpass}@{prh}:{prp}", 'http':f'socks5://{pru}:{prpass}@{prh}:{prp}'}
+            #: Только СОКС5. Для ssh -D 
+            else: self.session.proxies = {"https": f"socks5://{prh}:{prp}", 'http':f'socks5://{prh}:{prp}'}
+
         # Переменные для запроса
         self.url: str = _url
         self.headers: dict = _headers
