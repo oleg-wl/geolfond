@@ -113,4 +113,5 @@ class ReestrRequest:
             i['filter'] = self.filter[1]
 
         #Возващает список словарей-строк и фильтр
+        self.logger.info(f'Данные загружены успешно. Всего {len(data)} строк')
         return data

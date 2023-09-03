@@ -10,7 +10,7 @@ import requests
 from art import tprint, art
 
 import Parser
-
+from geolfond import run_code
 
 @click.command()
 def info():
@@ -19,6 +19,7 @@ def info():
     """
     tprint("geolfond")
     click.echo("2023 год. Загрузка открытых данных РФРГ.")
+    click.echo('email для связи geolfondapp@mail.ru')
 
 
 @click.command()
@@ -90,6 +91,15 @@ def matrix(filter: str):
     """
     pass
 
+@click.command()
+def update():
+    """
+    Простая команда для обновления данных о нефтяных ЛУ и отправки на почту
+    """
+    click.echo("Погнали... {n}".format(n=art("rand")))
+    run_code()
+    click.echo("Успех {n}\n".format(n=art("rock on2")))
+
 
 @click.group()
 def cli():
@@ -98,8 +108,9 @@ def cli():
 
 cli.add_command(info)
 cli.add_command(filters)
-cli.add_command(download)
-cli.add_command(matrix)
+#cli.add_command(download)
+#cli.add_command(matrix)
+cli.add_command(update)
 
 
 if __name__ == "__main__":
