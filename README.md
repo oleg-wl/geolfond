@@ -51,5 +51,5 @@ python main.py download -f water //Запрос по фильтру кода П�
 python geolfond.py
 ``` 
 
-Есть вопросы, пиши :[geolfondapp@mail.ru ](mailto:geolfondapp@mail.ru?subject=Привет! Есть вопрос по парсеру)
+Есть вопросы, пиши: [geolfondapp@mail.ru](mailto:geolfondapp@mail.ru?subject=Привет! Есть вопрос по парсеру)
 
