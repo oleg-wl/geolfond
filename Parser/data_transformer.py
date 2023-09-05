@@ -56,12 +56,13 @@ def create_df(raw_data: list) -> pd.DataFrame:
 
     # Извлечение ИНН:
     # Паттерны regrex
-    pattern_for_inn = "([\d{10}|\d{12}]+)"
+    pattern_for_inn = '(\d{10,12})'
     pattern_for_replace_inn = "( \(ИНН.*\)$)"
 
     df["INN"] = df["owner_full"].str.extract(pattern_for_inn)
     df["INN"] = df["INN"].astype('int', errors="ignore")
     df["owner"] = df["owner_full"].str.replace(pattern_for_replace_inn, "", regex=True)
+    df["owner"] = df["owner"].str.replace('\"|\'|«|»', "", regex=True)
 
     #: Очистка для столбца с видом полезного ископаемого
     df['filter'] = df['filter'].str.slice(start=4) 
@@ -69,28 +70,30 @@ def create_df(raw_data: list) -> pd.DataFrame:
     #: Функция для очистки данных о недропользователях
     #: Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
     #: Как праило это ликвидированные или реорганизованные недропользователи    
-    def change_inn(owners):
-        for owner in owners:
-            try:
-                query = df.loc[(df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
-                df.loc[df['owner'] == owner, 'INN'] = query.iloc[0,0]
-            except IndexError:
-                continue
-    def change_owners(inns):
-        for inn in inns:
-            try:
-                query = df.loc[(df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
-                df.loc[df['INN'] == inn, 'owner'] = query.iloc[0,1]
-            except IndexError:
-                continue
+    #! Временно отключено для проверки совместимости данных
+    #! и ускорения процесса загрузки
+    #def change_inn(owners):
+    #    for owner in owners:
+    #        try:
+    #            query = df.loc[(df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+    #            df.loc[df['owner'] == owner, 'INN'] = query.iloc[0,0]
+    #        except IndexError:
+    #            continue
+    #def change_owners(inns):
+    #    for inn in inns:
+    #        try:
+    #            query = df.loc[(df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
+    #            df.loc[df['INN'] == inn, 'owner'] = query.iloc[0,1]
+    #        except IndexError:
+    #            continue
 
     #: Оптимизация для фильтров не oil
     
-    if df['filter'].str.contains('Углеводородное сырье').any():
-        logger.debug(f'Очистка данных о недропользователях')
-        change_inn(df['owner'].unique().tolist())
-        change_owners(df['INN'].unique().tolist())
-        logger.debug(f'Очистка данных завершена')
+    #if df['filter'].str.contains('Углеводородное сырье').any():
+    #    logger.debug(f'Очистка данных о недропользователях')
+    #    change_inn(df['owner'].unique().tolist())
+    #    change_owners(df['INN'].unique().tolist())
+    #    logger.debug(f'Очистка данных завершена')
 
     df["owner"] = df["owner"].fillna(value=df["owner_full"], axis=0)
     
@@ -196,7 +199,7 @@ def create_df(raw_data: list) -> pd.DataFrame:
 
         assert df['owner'].count() == df['owner_full'].count(), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
 
-        logger.info(f'Тесты ОК, всего строк: {len(df.Last)}')
+        logger.info(f'Тесты ОК, всего строк: {len(df.index)}')
 
     except AssertionError as err:
         logger.warning(err)

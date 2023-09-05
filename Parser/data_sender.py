@@ -23,7 +23,7 @@ class EmailSender:
             self.smtp_port = self.conf.get('email', 'smtp_port')
             self.smtp_to = self.conf.get('email', 'smtp_to')
         else: 
-            self.logger.exception(NoSectionError) 
+            self.logger.error('Необходимо указать данные для отправки email в config.ini') 
             raise  NoSectionError
         
         self.logfile = check_logfile()
