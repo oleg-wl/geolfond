@@ -349,3 +349,22 @@ json_data: dict = {
     },
     "WidgetGuid": "245d52ef1fdc474a8795fc37a8d03d02",
 }
+
+#: Заголовок запроса для сайта Минэка. Используй для парсинга цен Argus на нефть
+headers_price = {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/117.0',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+    # 'Accept-Encoding': 'gzip, deflate, br',
+    'Referer': 'https://economy.gov.ru/material/departments/d12/konyunktura_mirovyh_tovarnyh_rynkov/',
+    'DNT': '1',
+    'Connection': 'keep-alive',
+    # Requests sorts cookies= alphabetically
+    # 'Cookie': 'session-cookie=17839a0e4a73358f75e0135eb4819f5bdfa917d513e526a3b5ffd28692550f32348af4815844d2d8fe0fd5037681b0e1; sp_test=1; sputnik_session=1694367273721|2; PHPSESSID=c3uvu7g1702pftlba6ku2g7rvh',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-User': '?1',
+    'Sec-GPC': '1',
+}

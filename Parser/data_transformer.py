@@ -35,6 +35,7 @@ def create_df(raw_data: list) -> pd.DataFrame:
         "type": "str",
         "state": "str",
         "Last": "bool",
+        "status":'str',
         "filter": 'str'
     }
 
@@ -58,11 +59,15 @@ def create_df(raw_data: list) -> pd.DataFrame:
     # Паттерны regrex
     pattern_for_inn = '(\d{10,12})'
     pattern_for_replace_inn = "( \(ИНН.*\)$)"
+    patt_status = '(Аннулирование|Приостановление|Ограничение)'
 
     df["INN"] = df["owner_full"].str.extract(pattern_for_inn)
     df["INN"] = df["INN"].astype('int', errors="ignore")
     df["owner"] = df["owner_full"].str.replace(pattern_for_replace_inn, "", regex=True)
     df["owner"] = df["owner"].str.replace('\"|\'|«|»', "", regex=True)
+    
+    #Анулированные лицензии
+    df['status'] = df['ordered'].str.extract(patt_status)
 
     #: Очистка для столбца с видом полезного ископаемого
     df['filter'] = df['filter'].str.slice(start=4) 
