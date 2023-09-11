@@ -30,7 +30,7 @@ def run_code() -> None:
         Parser.save_df(df, 'oil')
 
         x = Parser.sender()
-        msg = x.create_message(all=False, filename='oil_data.xlsx')
+        msg = x.create_message(all=True)
         x.send_message(msg)
     except: 
         logger.critical('Ошибка выгрузки')

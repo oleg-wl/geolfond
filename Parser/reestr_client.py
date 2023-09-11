@@ -174,7 +174,7 @@ class ReestrRequest:
         pat_dt = re.compile('(?P<date>\w* \d{4})')
         pat_price = re.compile('(?P<usd>\d{1,3},\d{1,2})')
         
-        for counts in range(1, 5):
+        for counts in range(1, 10):
             resp = self.session.get(url=url1+str(counts), headers=headers)
         
             data = bs(resp.text, 'html.parser')
