@@ -101,6 +101,30 @@ def parser_logger(logger_name: str = __name__):
         return wrapper
     return added_logger
 
+def basic_logging(msg: str , error: str, logger_name: str = __name__):
+    """
+    Декоратор для логгинга сообщений и ошибок с помощью объекта логгера. Инфо в консоль, Дебаг в файл.
+    Добавляй декоратор к функциям в main или geolfond модулях
+
+    :param str msg: Сообщение для успеха
+    :param str error: Собщение для ошибки
+    :param str logger_name: название логгера, defaults to __name__
+    """
+    def add_logger(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            logger = config_logger(logger_name)
+            try:
+                logger.info(msg=msg)
+                result = func(*args, **kwargs)
+            except Exception as e:
+                logger.error(msg=error)
+                logger.debug(msg=error, exc_info=e)
+            return result
+        return wrapper
+    return add_logger
+
+                
 class EmptyFolder(Exception):
     def __init__(self) -> Exception:
         super().__init__(self)

@@ -152,7 +152,7 @@ class ReestrRequest:
             table_tag = raw.table
             
             rows = [i for i in table_tag.stripped_strings][5:]
-            data = {'Date':[v for n,v in enumerate(rows) if n % 3 == 0], 'Rate':[rows[n+2] for n,v in enumerate(rows) if n % 3 == 0]}
+            data = {'Dates':[v for n,v in enumerate(rows) if n % 3 == 0], 'Rate':[rows[n+2] for n,v in enumerate(rows) if n % 3 == 0]}
             
             return data
 
@@ -174,7 +174,8 @@ class ReestrRequest:
         pat_dt = re.compile('(?P<date>\w* \d{4})')
         pat_price = re.compile('(?P<usd>\d{1,3},\d{1,2})')
         
-        for counts in range(1, 10):
+        self.logger.info('Загружаю котировки Argus')
+        for counts in range(1, 7):
             resp = self.session.get(url=url1+str(counts), headers=headers)
         
             data = bs(resp.text, 'html.parser')
