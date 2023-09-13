@@ -18,7 +18,7 @@ from .headers import filter as _filter
 from .headers import headers_price as _hp
 
 from .reestr_config import config_path, create_config
-from .reestr_config import config_logger, parser_logger
+from .reestr_config import config_logger, parser_logger, basic_logging
 
 class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
@@ -80,7 +80,7 @@ class ReestrRequest:
 
         return numrec, response
     
-    @parser_logger('client')
+    @parser_logger('reestr')
     def get_data_from_reestr(self, filter: str = "oil") -> list:
         """
         Метод делает запросы к базе данных Роснедр.
@@ -156,7 +156,8 @@ class ReestrRequest:
             
             return data
 
-    def get_oil_price(self) -> dict[datetime.datetime, str]:
+    @basic_logging(msg='Argus загружен', error='Ошибка парсера Argus', logger_name='Argus')
+    def get_oil_price(self, rng: int = 7) -> dict[datetime.datetime, str]:
         """
         Метод для парсинга цен на нефть с сайта Минэкономразвития. Публикуемые котировки Argus для расчета коэфициента Кц.
 
@@ -175,7 +176,7 @@ class ReestrRequest:
         pat_price = re.compile('(?P<usd>\d{1,3},\d{1,2})')
         
         self.logger.info('Загружаю котировки Argus')
-        for counts in range(1, 7):
+        for counts in range(1, rng):
             resp = self.session.get(url=url1+str(counts), headers=headers)
         
             data = bs(resp.text, 'html.parser')

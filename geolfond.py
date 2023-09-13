@@ -1,4 +1,11 @@
 #!venv/bin/python3
+
+"""
+Основной модуль для запуска парсера. 
+
+"""
+
+
 import Parser
 
 
@@ -23,11 +30,15 @@ def run_code() -> None:
         logger = Parser.config_logger('geolfond')
         parser = Parser.client()
         logger.info('Начинаю загрузку')
+
         data = parser.get_data_from_reestr(filter='oil')
+        curr = parser.get_currency('01.01.2021')
+        pr = parser.get_oil_price(rng=7)
 
         df = Parser.create_df(data)
-
         Parser.save_df(df, 'oil')
+
+        Parser.create_prices(curr=curr, pr=pr)
 
         x = Parser.sender()
         msg = x.create_message(all=True)

@@ -115,8 +115,10 @@ def basic_logging(msg: str , error: str, logger_name: str = __name__):
         def wrapper(*args, **kwargs):
             logger = config_logger(logger_name)
             try:
-                logger.info(msg=msg)
                 result = func(*args, **kwargs)
+
+                #Сообщение успех
+                logger.info(msg=msg)
             except Exception as e:
                 logger.error(msg=error)
                 logger.debug(msg=error, exc_info=e)

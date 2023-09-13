@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from .reestr_config import config_logger, check_path
+from .reestr_config import config_logger, check_path, basic_logging
 
 def create_df(raw_data: list) -> pd.DataFrame: 
     """
@@ -214,11 +214,11 @@ def create_df(raw_data: list) -> pd.DataFrame:
 
     return df #.astype(dtype=types)
 
-def save_df(dataframe: list | pd.DataFrame, name: str) -> None:
+def save_df(dataframe: pd.DataFrame, name: str) -> None:
     """
     Функция для сохранения результата обработки в ексель файл
 
-    :param list  |  pd.DataFrame dataframe: датафрейм для сохранения в ексель
+    :param pd.DataFrame dataframe: датафрейм для сохранения в ексель
     :param str name: фильтр для названия файла
     """
 
@@ -275,3 +275,23 @@ def create_matrix(dataframe: pd.DataFrame) -> None:
         matrix.to_excel(matrix_path, sheet_name='matrix')
         with pd.ExcelWriter(path=matrix_path, if_sheet_exists='replace', mode='a') as writer:
             lookup_table.to_excel(writer, sheet_name='lookup_table')
+
+def create_prices(curr: dict, pr: dict) -> None:
+
+    df_pr = pd.DataFrame(pr).set_index('Dates')
+    df_curr = pd.DataFrame(curr)
+
+    #: Обработка датафрейма с котировками Argus
+    df_pr['Price'] = pd.to_numeric(df_pr['Price'].str.replace(',','.'))
+
+    #: Обработка датафрейма с курсом ЦБ
+    df_curr['Dates'] = pd.to_datetime(df_curr['Dates'], format='%d.%m.%Y', dayfirst=True)
+    df_curr['Rate'] = df_curr['Rate'].str.replace(',', '.')
+    df_curr['Rate'] = df_curr['Rate'].str.replace(' ', '')
+    df_curr['Rate'] = pd.to_numeric(df_curr['Rate']) 
+
+    #: группировка и Join
+    m = df_curr.set_index('Dates').groupby(pd.Grouper(freq='MS')).mean().round(4)
+    merged_dfs = df_pr.merge(m, how='inner', left_index=True, right_index=True)
+    
+    merged_dfs.to_excel(os.path.join(check_path(), 'prices.xlsx'))
