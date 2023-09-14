@@ -14,14 +14,21 @@ import Parser
 def parse_reestr_full() -> None:
     #: Пропарсить весь реестр
     try:
+        logger = Parser.config_logger('geolfond_all_filters')
+        parser = Parser.client()
+        tr = Parser.transformer()
         f = Parser._filter()
         for i in f.keys():
-            data = Parser.client.get_data_from_reestr(filter=i)
-            df = Parser.create_df(data)
-            Parser.save_df(df, i)
+            logger.info(f'Загружаю {i}')
+            data = parser.get_data_from_reestr(filter=i)
+            logger.info(f'Загрузил {i}')
+            df = tr.create_df(data)
+            logger.info(f'Сохранил в {tr.path}')
+            tr.save_df(df, i)
 
     except Exception as e:
-        raise
+        logger.error(e)
+        raise e
 
 def run_code() -> None:
     #: Функция для скачивания только oil
@@ -29,16 +36,17 @@ def run_code() -> None:
     try:
         logger = Parser.config_logger('geolfond')
         parser = Parser.client()
+        transformer = Parser.transformer()
         logger.info('Начинаю загрузку')
 
         data = parser.get_data_from_reestr(filter='oil')
         curr = parser.get_currency('01.01.2021')
         pr = parser.get_oil_price(rng=7)
 
-        df = Parser.create_df(data)
-        Parser.save_df(df, 'oil')
+        df = transformer.create_df(data)
+        transformer.save_df(df, 'oil')
 
-        Parser.create_prices(curr=curr, pr=pr)
+        transformer.create_prices(curr=curr, pr=pr)
 
         x = Parser.sender()
         msg = x.create_message(all=True)
