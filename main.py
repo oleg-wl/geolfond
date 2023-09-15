@@ -42,7 +42,7 @@ def filters():
     show_default=True,
     help="Укажи значение фильтра из команды filter",
 )
-def download(filter: str):
+def get_reestr(filter: str):
     """
     Скачать данные c реестра
     """
@@ -51,8 +51,10 @@ def download(filter: str):
 
     try:
         parser = Parser.client()
+        tr = Parser.transformer()
+        
         data = parser.get_data_from_reestr(filter)
-        df = Parser.create_df(data)
+        df = tr.create_df(data)
         
         n = sum(x is None for x in df['forw_full']
             ), len(df["date"])
@@ -60,9 +62,8 @@ def download(filter: str):
                     n[1], n[0]
                 )
             )
-        Parser.save_df(df, filter)
-        click.echo('ДАнные сохранены. Генерирую матрицу.')
-        Parser.create_matrix(df)
+        tr.save_df(df, filter)
+        click.echo(f'Данные сохранены в {tr.path}')
         click.echo("Успех {n}\n".format(n=art("rock on2")))
 
     except requests.exceptions.Timeout as e:
@@ -89,7 +90,19 @@ def matrix(filter: str):
     Скачать матрицу данных об лицензиях по годам, в разработке
     В разработке
     """
-    pass
+    try:
+        parser = Parser.client()
+        tr = Parser.transformer()
+    
+        data = parser.get_data_from_reestr(filter)
+        df = tr.create_df(data)
+        tr.create_matrix(df)
+        click.echo(f'Матрица сохранена в {tr.path}')
+        click.echo("Успех {n}\n".format(n=art("rock on2")))
+    
+    except Exception as e:
+        raise e
+        
 
 @click.command()
 def update():
@@ -100,6 +113,34 @@ def update():
     run_code()
     click.echo("Успех {n}\n".format(n=art("rock on2")))
 
+@click.command()
+@click.option('--type', type=str, help='json для сохранения в виде json; xlsx для сохранения в виде экселя')
+def get_raw_data(type):
+    """Выгрузить данные в формате json 
+
+    Args:
+        type (_type_): _description_
+    """
+    if isinstance(type, str):
+        if type == 'json':
+            pass
+        elif type == 'xlsx':
+            pass 
+    pass
+
+@click.command()
+def get_prices():
+    """
+    Получить данные среднего курса ЦБ РФ и Argus
+    """
+    parser = Parser.client()
+    tr = Parser.transformer()
+    
+    curr = parser.get_currency(start_date='01.01.2021')
+    pr = parser.get_oil_price(rng=7)
+    
+    tr.create_prices(curr=curr, pr=pr)
+    
 
 @click.group()
 def cli():
@@ -108,9 +149,12 @@ def cli():
 
 cli.add_command(info)
 cli.add_command(filters)
-#cli.add_command(download)
-#cli.add_command(matrix)
+cli.add_command(get_reestr)
+cli.add_command(matrix)
 cli.add_command(update)
+cli.add_command(get_prices)
+cli.add_command(get_raw_data)
+
 
 
 if __name__ == "__main__":

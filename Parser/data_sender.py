@@ -5,6 +5,10 @@ import os
 import smtplib, ssl
 from email.message import EmailMessage
 
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+
 from .reestr_config import create_config
 from .reestr_config import check_logfile, check_path, config_logger
 from .reestr_config import EmptyFolder
@@ -37,7 +41,7 @@ class EmailSender:
         self.user = self.smtp_user or None
         
 
-    def create_message(self, all: bool = False, filename: str = None) -> EmailMessage:
+    def create_message(self, all: bool = False, filename: str = None, htmlstr: str = None) -> EmailMessage:
         """
         Создать сообщение с вложением для отправки на почту
 
@@ -46,7 +50,7 @@ class EmailSender:
         :return EmailMessage: инстанс класса EmailMessage для отправки
         """
 
-        msg = EmailMessage()
+        msg = MIMEMultipart()
         msg['Subject'] = 'Выгрузка данных для дашборда'
         msg['From'] = self.smtp_user
         msg['To'] = self.smtp_to
@@ -64,9 +68,9 @@ class EmailSender:
             else:
                 f = os.path.join(self.folder, filename)
                 with open(f, 'rb') as file:
-                    attach = file.read()
-                    
-                msg.add_attachment(attach, maintype='application', subtype='xlsx', filename=filename)
+                    attach = MIMEApplication(file.read(), _subtype='xlsx')
+                attach.add_header('Content-Disposition', 'attachment', filename=filename)
+                msg.attach(attach)                    
                 self.logger.info(f'{filename} добавлен во вложениe')
 
         #: Отпрввить все xlsx в папке
@@ -74,12 +78,16 @@ class EmailSender:
         #: Добавить все эксель файлы во вложение к письму
             for file in self.files:
                 with open(file, 'rb') as f:
-                    attach = f.read()
-                filename = file.rsplit(sep='/')[-1]
+                    attach = MIMEApplication(f.read(), _subtype='xlsx')
                    
-                msg.add_attachment(attach, maintype='application', subtype='xlsx', filename=filename)
+                filename = file.rsplit(sep='/')[-1]
+                attach.add_header('Content-Disposition', 'attachment', filename=filename)
+                msg.attach(attach)
+                    
             self.logger.info(f'{len(self.files)} добавлено во вложения')
-            
+        
+        if isinstance(htmlstr, str):
+            msg.attach(MIMEText(htmlstr), 'html')    
          
 
 
@@ -111,3 +119,4 @@ class EmailSender:
         msg.add_attachment(attach, maintype='application', subtype='txt', filename=self.logfile) 
         msg.add_header('Content-Disposition', 'attachment')
         return msg
+    
