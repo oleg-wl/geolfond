@@ -42,7 +42,7 @@ def filters():
     show_default=True,
     help="Укажи значение фильтра из команды filter",
 )
-def download(filter: str):
+def get_reestr(filter: str):
     """
     Скачать данные c реестра
     """
@@ -149,7 +149,7 @@ def cli():
 
 cli.add_command(info)
 cli.add_command(filters)
-cli.add_command(download)
+cli.add_command(get_reestr)
 cli.add_command(matrix)
 cli.add_command(update)
 cli.add_command(get_prices)
