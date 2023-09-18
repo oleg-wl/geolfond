@@ -230,7 +230,7 @@ class DataTransformer:
         :param str name: фильтр для названия файла
         """
 
-        excel_path = os.path.join(self.path, f'{name}_data.xlsx')
+        excel_path = os.path.join(self.path, f'{name}.xlsx')
         dataframe.to_excel(excel_path, sheet_name=name, freeze_panes=(1, 0), na_rep='')
 
         self.logger.info(f'Данные сохранены в {excel_path}')
@@ -302,3 +302,46 @@ class DataTransformer:
         merged_dfs = df_pr.merge(m, how='inner', left_index=True, right_index=True)
         
         merged_dfs.to_excel(os.path.join(self.path, 'prices.xlsx'))
+
+    def create_abdt_index(self, data: dict):
+
+        def prep_vals(df: pd.DataFrame) -> pd.DataFrame:
+            #Простая функция подготовить df
+            df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d', dayfirst=True)
+            return df[['date', 'value']]
+
+        def mean_vals(df: pd.DataFrame) -> pd.DataFrame:
+            #Средние значения цены для каждого месяца
+            means = (df.set_index('date')
+                     .groupby(pd.Grouper(freq='MS'))
+                     .mean()
+                     .round()
+                     .sort_index(ascending=False))
+            return means
+            
+        df_reg = prep_vals((pd.read_csv(data['reg'], delimiter=';')))
+        df_reg = mean_vals(df_reg)
+
+        dt_inds = ['dtl', 'dtm', 'dtz']
+        l = []
+        for i in dt_inds:
+            dt = prep_vals((pd.read_csv(data[i], delimiter=';')))
+            l.append(dt) 
+
+        df_dt = pd.concat(l)
+        df_dt = mean_vals(df_dt)
+
+        #Свести в единый датафрейм цену на бензин рег-92 и на дизель 
+        md = df_reg.merge(df_dt, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
+
+        return md
+
+    def kdemp(self, data: dict) -> str:
+
+        x = self.create_abdt_index(data)
+
+        
+            
+        
+
+        

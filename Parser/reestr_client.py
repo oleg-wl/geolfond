@@ -9,6 +9,7 @@ import requests
 import re
 from bs4 import BeautifulSoup as bs
 import datetime
+from io import StringIO
 
 from .headers import url as _url
 from .headers import headers as _headers 
@@ -16,6 +17,7 @@ from .headers import json_data as _json_data
 from .headers import cols as _cols
 from .headers import filter as _filter
 from .headers import headers_price as _hp
+from .headers import url_smtb as _urlsmtb
 
 from .reestr_config import config_path, create_config
 from .reestr_config import config_logger, parser_logger, basic_logging
@@ -205,6 +207,17 @@ class ReestrRequest:
                     dates_fixed.append(d)
         
         return {'Dates':dates_fixed, 'Price':prices}
+
+    def get_abdt_index(self) -> dict:
+
+        #: Требуемые индексы захардкодил. 
+        ind = ['reg', 'dtl', 'dtm', 'dtz']
+        d = {}
+        for index in ind:
+            r = self.session.get(_urlsmtb.format(index=index))
+            d[index] = StringIO(r.text)
+        
+        return d
         
         
         

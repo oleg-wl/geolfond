@@ -25,7 +25,7 @@ class EmailSender:
             self.smtp_pass = self.conf.get('email', 'smtp_password')
             self.smtp_server = self.conf.get('email', 'smtp_server')
             self.smtp_port = self.conf.get('email', 'smtp_port')
-            self.smtp_to = self.conf.get('email', 'smtp_to')
+            self.smtp_to = self.conf.get('email', 'smtp_to').split(',')
         else: 
             self.logger.error('Необходимо указать данные для отправки email в config.ini') 
             raise  NoSectionError
@@ -53,7 +53,7 @@ class EmailSender:
         msg = MIMEMultipart()
         msg['Subject'] = 'Выгрузка данных для дашборда'
         msg['From'] = self.smtp_user
-        msg['To'] = self.smtp_to
+        msg['To'] = ", ".join(self.smtp_to)
 
         #: проверка типов
         if (not all) and (filename is None):
@@ -87,7 +87,7 @@ class EmailSender:
             self.logger.info(f'{len(self.files)} добавлено во вложения')
         
         if isinstance(htmlstr, str):
-            msg.attach(MIMEText(htmlstr), 'html')    
+            msg.attach(MIMEText(htmlstr, 'html'))    
          
 
 
@@ -111,7 +111,7 @@ class EmailSender:
         msg = EmailMessage()
         msg['Subject'] = 'Ошибка выгрузки. Лог файл'
         msg['From'] = self.smtp_user
-        msg['To'] = self.smtp_to
+        msg['To'] = self.smtp_to[0] #send log to first if multiple addrs 
 
         #: msg
         with open(self.logfile, 'rb') as log:

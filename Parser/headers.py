@@ -368,3 +368,5 @@ headers_price = {
     'Sec-Fetch-User': '?1',
     'Sec-GPC': '1',
 }
+#: GET запрос к сайту биржи СПБ по Цаб_вр и Цдт_вр
+url_smtb = 'https://spimex.com/indexes/service_functions_oil.php?request=graph&code={index}&index=eti&market=P&litre=0&subcode=evr'
