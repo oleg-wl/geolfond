@@ -45,10 +45,12 @@ class EmailSender:
 
     def create_message(self, all: bool = False, filename: str|list = None, htmlstr: str = None):
         """
-        Создать сообщение с вложением для отправки на почту
+        Создать MIME сообщение для отправки на почту. Если all=False, filename=None (default), отправить письмо без вложений. 
 
-        :param bool all: True для отправки всех файлов из папки data в config.ini, defaults to False
-        :param str filename: Имя файла для отправки. Если all=True будет ошибка, defaults to None
+        :param bool all: True - добавить все файлы из data_folder во вложение, defaults to False
+        :param str | list filename: имя файла в папке data_folder или список имен файлов, defaults to None
+        :param str htmlstr: html текст для добавления в тело письма, defaults to None
+        :return _type_: MIMEMultipart
         """
 
         msg = MIMEMultipart()
@@ -56,34 +58,36 @@ class EmailSender:
         msg['From'] = self.smtp_user
         msg['To'] = ", ".join(self.smtp_to)
 
-        #: проверка типов
-        if (not all) and (filename is None):
-            raise ValueError(f'Укажи имя файла или список  для отправки или all = True для отправки всех xlsx файлов из папки {self.folder}')
 
-        if (not all) and (isinstance(filename, str)):
-            self.files = [os.path.join(self.folder, filename)]
+        if (all) or (filename is not None):
+        
+            if (not all) and (isinstance(filename, str)):
+                self.files = [os.path.join(self.folder, filename)]
 
-        if (not all) and (isinstance(filename, list)) and (len(filename) > 0):
-        #: Отправить отдельные файлы из папки
-            #: Добавить список эксель файлов во вложение к письму переданный filename
-            self.files = [os.path.join(self.folder, file) for file in filename]
+            if (not all) and (isinstance(filename, list)) and (len(filename) > 0):
+            #: Отправить отдельные файлы из папки
+                #: Добавить список эксель файлов во вложение к письму переданный filename
+                self.files = [os.path.join(self.folder, file) for file in filename]
 
-        c = 0
-        for file in self.files:
-            if not os.path.exists(file):
-                self.logger.info(f'Файл {file} отсутствует')
-                continue
-            
-            fn = file.rsplit(sep='/')[-1] #имя файлаа
-            ft = file.rsplit(sep='.')[1]  #тип файла
-            with open(file, 'rb') as f:
-                c += 1
-                attach = MIMEApplication(f.read(), _subtype=ft)
+            c = 0
+            for file in self.files:
+                if not os.path.exists(file):
+                    self.logger.info(f'Файл {file} отсутствует')
+                    continue
+                
+                fn = file.rsplit(sep='/')[-1] #имя файлаа
+                ft = file.rsplit(sep='.')[1]  #тип файла
+                with open(file, 'rb') as f:
+                    c += 1
+                    attach = MIMEApplication(f.read(), _subtype=ft)
 
-            attach.add_header('Content-Disposition', 'attachment', filename=fn)
-            msg.attach(attach)
+                attach.add_header('Content-Disposition', 'attachment', filename=fn)
+                msg.attach(attach)
 
-        self.logger.info(f'{c} добавлено во вложения')
+            self.logger.info(f'{c} добавлено во вложения')
+
+        if isinstance(htmlstr, str):
+            msg.attach(MIMEText(htmlstr, 'html')) 
 
         self.message = msg
         return self
@@ -115,6 +119,7 @@ class EmailSender:
             attach = log.read()
         msg.add_attachment(attach, maintype='application', subtype='txt', filename=self.logfile) 
         msg.add_header('Content-Disposition', 'attachment')
+        self.logger.info('Создан файл с логом')
 
         self.message = msg
         return self
