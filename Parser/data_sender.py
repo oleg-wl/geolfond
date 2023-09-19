@@ -19,6 +19,8 @@ class EmailSender:
 
         self.logger = config_logger('email-sender')
 
+        self.message = None
+
         self.conf = create_config()
         if self.conf.has_section('email'):
             self.smtp_user = self.conf.get('email', 'smtp_user')
@@ -28,7 +30,7 @@ class EmailSender:
             self.smtp_to = self.conf.get('email', 'smtp_to').split(',')
         else: 
             self.logger.error('Необходимо указать данные для отправки email в config.ini') 
-            raise  NoSectionError
+            raise  NoSectionError()
         
         self.logfile = check_logfile()
         self.folder = check_path()
@@ -41,13 +43,12 @@ class EmailSender:
         self.user = self.smtp_user or None
         
 
-    def create_message(self, all: bool = False, filename: str = None, htmlstr: str = None) -> EmailMessage:
+    def create_message(self, all: bool = False, filename: str = None, htmlstr: str = None):
         """
         Создать сообщение с вложением для отправки на почту
 
         :param bool all: True для отправки всех файлов из папки data в config.ini, defaults to False
         :param str filename: Имя файла для отправки. Если all=True будет ошибка, defaults to None
-        :return EmailMessage: инстанс класса EmailMessage для отправки
         """
 
         msg = MIMEMultipart()
@@ -67,11 +68,15 @@ class EmailSender:
             #: Отправить файл
             else:
                 f = os.path.join(self.folder, filename)
-                with open(f, 'rb') as file:
-                    attach = MIMEApplication(file.read(), _subtype='xlsx')
-                attach.add_header('Content-Disposition', 'attachment', filename=filename)
-                msg.attach(attach)                    
-                self.logger.info(f'{filename} добавлен во вложениe')
+                if not os.path.exists(f):
+                    self.logger.debug(f'Путь к файлу для отправки не существует: {f}')
+                    raise FileNotFoundError('Файл несуществует')
+                else:
+                    with open(f, 'rb') as file:
+                        attach = MIMEApplication(file.read(), _subtype='xlsx')
+                    attach.add_header('Content-Disposition', 'attachment', filename=filename)
+                    msg.attach(attach)                    
+                    self.logger.info(f'{filename} добавлен во вложениe')
 
         #: Отпрввить все xlsx в папке
         elif all:
@@ -91,19 +96,19 @@ class EmailSender:
          
 
 
-        return msg
+        self.message = msg
+        return self
 
-    def send_message(self, msg: EmailMessage) -> None:
+    def send_message_f(self) -> None:
         """
         Метод для отправки сообщения
-
-        :param EmailMessage msg: сообщение из метода create_message
         """
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL(self.smtp_server, port=self.smtp_port, context=context) as server:
             server.login(user=self.smtp_user, password=self.smtp_pass)
-            server.send_message(msg)
-        self.logger.info(f'Выгрузка отправлено на адрес {self.smtp_to}')
+            server.send_message(msg=self.message)
+        t = self.message.get('To')
+        self.logger.info(f'Выгрузка отправлено на адрес {t}')
 
     def create_log_message(self) -> EmailMessage:
 
@@ -111,7 +116,11 @@ class EmailSender:
         msg = EmailMessage()
         msg['Subject'] = 'Ошибка выгрузки. Лог файл'
         msg['From'] = self.smtp_user
-        msg['To'] = self.smtp_to[0] #send log to first if multiple addrs 
+
+        #send log to first if multiple addrs 
+        if isinstance(self.smtp_to, list): 
+            msg['To'] = self.smtp_to[0] 
+        elif isinstance(self.smtp_to, str): msg['To'] = self.smtp_to 
 
         #: msg
         with open(self.logfile, 'rb') as log:

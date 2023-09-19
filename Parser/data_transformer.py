@@ -1,6 +1,7 @@
 #!venv/bin/python3
 import re
 import os
+import datetime
 
 import pandas as pd
 import numpy as np
@@ -9,20 +10,29 @@ from .reestr_config import config_logger, check_path, basic_logging
 
 class DataTransformer:
     
-    def __init__(self) -> None:
+    def __init__(self, data: [str|list|dict] = None, **kwargs) -> None:
         
         self.logger = config_logger('transformer')
         self.path = check_path()
+
+        #Сделать переменные для обработки при инициализации класса
+        # и return self 
+        self.data = data
+        self.rosnedra = None
+        self.abdt = None
         
         
 
-    def create_df(self, raw_data: list) -> pd.DataFrame: 
+    def create_df(self) -> pd.DataFrame: 
         """
         Очистка ответа API с помощью библиотеки pandas. Функция возвращает обработанный датафрейм.
 
         :param list raw_data: список словарей ответа api
         :return pd.DataFrame: очищенные данные
         """
+        #Input check
+        if (self.data is None) or (not isinstance(self.data, list)):
+            raise ValueError('Отсутствуют даннанные для обработки. Нужен список, который возвращает client().get_data_from_reestr ')
         
         types = {
             "date": 'datetime64[ns]',
@@ -47,7 +57,7 @@ class DataTransformer:
             "filter": 'str'
         }
 
-        df = pd.DataFrame(raw_data).set_index("num")
+        df = pd.DataFrame(self.data).set_index("num")
         
         # выделение столбца ГОД
         df["date"] = pd.to_datetime(
@@ -200,8 +210,6 @@ class DataTransformer:
         #: Заменить все nan и 0 в координатах
         #df = df.replace(to_replace=['nan'], value=pd.NA)
 
-
-
         #: Тесты
         try: 
             assert df['prew_full'].count() == df['prev_lic'].count(), f"Тест не пройден, prew_lic:{df['prev_lic'].count()}, prew_full:{df['prew_full'].count()}"
@@ -218,13 +226,15 @@ class DataTransformer:
             self.logger.warning(err)
         finally:
 
-            df = df[list(types.keys())].reset_index()
+            #Датафрейм для сохранения или передачи методу create_matrix
+            self.rosnedra = df[list(types.keys())].reset_index()
 
-        return df #.astype(dtype=types)
+        return self 
 
+    #TODO: надо сделать логику сохранения инстанса
     def save_df(self, dataframe: pd.DataFrame, name: str) -> None:
         """
-        Функция для сохранения результата обработки в ексель файл
+        Метод для сохранения результата обработки в ексель файл
 
         :param pd.DataFrame dataframe: датафрейм для сохранения в ексель
         :param str name: фильтр для названия файла
@@ -235,21 +245,25 @@ class DataTransformer:
 
         self.logger.info(f'Данные сохранены в {excel_path}')
     
-    def create_matrix(self, dataframe: pd.DataFrame) -> None:
+    def create_matrix(self) -> None:
         """
-        Функция создает матрицу для меппенига для ГБЗ
-        :param pd.DataFrame dataframe: Пандас Датайфрейм с очищенными данными
+        Метод создает матрицу для меппенига данныз из ГБЗ и из Росгеолфонда
+        Сохраняет в эсксель таблицу _matrix.xlsx
         """
-        #TODO добавить логгер
+        self.logger.info('Создаю матрицу')
+
+        if self.rosnedra is None:
+            raise ValueError('Нет данных для матрицы.')
+
         #Очистить данные о предыдущих лицензиях
-        dataframe['prew_'] = dataframe['prew_full'].str.replace('\n', ':', regex=True).str.replace(' от \d\d\.\d\d', '', regex=True)
+        self.rosnedra['prew_'] = self.rosnedra['prew_full'].str.replace('\n', ':', regex=True).str.replace(' от \d\d\.\d\d', '', regex=True)
 
         #Извлечь все предыдущие лицензии и их год
         pattern = "(?P<old_lic>[А-Я]{3}\d*[А-Я]{2})(?:.)(?P<old_year>\d{4})"
-        df_left = dataframe['prew_'].str.extractall(pattern).droplevel(1).astype(dtype={'old_year':'int'})
+        df_left = self.rosnedra['prew_'].str.extractall(pattern).droplevel(1).astype(dtype={'old_year':'int'})
 
         #Добавить все текущие лицензии и их год
-        df_right = dataframe.loc[dataframe['Last'] == True, ['Year']].astype('int')
+        df_right = self.rosnedra.loc[self.rosnedra['Last'] == True, ['Year']].astype('int')
 
         #Таблица для связи текущих лицензий с предыдущими
         lookup_table = df_left.merge(df_right, how='right', left_index=True, right_index=True)
@@ -284,6 +298,13 @@ class DataTransformer:
                 lookup_table.to_excel(writer, sheet_name='lookup_table')
 
     def create_prices(self, curr: dict, pr: dict) -> None:
+        """
+        Метод для обработки данных о ценах. Возвращает среднемесячную котировку Аргус и среднемесячный курс $ЦБ
+        Сохраняет в prices.xlsx
+
+        :param dict curr: Словарь с выгрузкой Аргуса client.get_oil_price
+        :param dict pr: Словарь с курсом ЦБ client.get_currency
+        """
 
         df_pr = pd.DataFrame(pr).set_index('Dates')
         df_curr = pd.DataFrame(curr)
@@ -303,7 +324,17 @@ class DataTransformer:
         
         merged_dfs.to_excel(os.path.join(self.path, 'prices.xlsx'))
 
-    def create_abdt_index(self, data: dict):
+    def create_abdt_index(self):
+        """
+        Метод для расчета коэф Цабвр и Цдтвр на основе данных Спббиржи
+        Сохраняет среднюю котировку Резуляр-92 и Композитную по дизелям по месяцам в prices.xlsx
+
+        :raises ValueError: если нет данных для обработки. Передай аргументу data конструктора результат client.get_abdt_index
+        :return _type_: self.abdt для метода kdemp
+        """
+
+        if (self.data is None) or (not isinstance(self.data, dict)):
+            raise ValueError('Нет данных для обработки. Передай результат client.get_abdt_index')
 
         def prep_vals(df: pd.DataFrame) -> pd.DataFrame:
             #Простая функция подготовить df
@@ -319,13 +350,13 @@ class DataTransformer:
                      .sort_index(ascending=False))
             return means
             
-        df_reg = prep_vals((pd.read_csv(data['reg'], delimiter=';')))
+        df_reg = prep_vals((pd.read_csv(self.data['reg'], delimiter=';')))
         df_reg = mean_vals(df_reg)
 
         dt_inds = ['dtl', 'dtm', 'dtz']
         l = []
         for i in dt_inds:
-            dt = prep_vals((pd.read_csv(data[i], delimiter=';')))
+            dt = prep_vals((pd.read_csv(self.data[i], delimiter=';')))
             l.append(dt) 
 
         df_dt = pd.concat(l)
@@ -333,15 +364,44 @@ class DataTransformer:
 
         #Свести в единый датафрейм цену на бензин рег-92 и на дизель 
         md = df_reg.merge(df_dt, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
+        self.abdt = md
+        return self
 
-        return md
+    def kdemp(self) -> str:
+        """
+        Метод возвращает строку html таблицы со средними показателями для расчета Кдемп и Кабдт для отправки по электронной почте или для телеграм бота
 
-    def kdemp(self, data: dict) -> str:
+        :raises ValueError: должны быть данные в self.abdt
+        :return str: html таблица для отправки по почте
+        """
 
-        x = self.create_abdt_index(data)
+        if self.abdt is None:
+            raise ValueError('Нет данных для расчета Кдемп')
 
+        y = datetime.datetime.now().year
+        # [Цаб_вр, Цдт_вр] по годам
+        # Указано к в НК в текущей редакции. Править тут руками
+        if y == 2023:
+            norm = [56900, 53850]
+        elif y == 2024:
+            norm = [58650, 55500]
+        elif y == 2025:
+            norm = [60450, 57200]
+        elif y == 2026:
+            norm = [62300, 58950]
+        else:
+            self.logger.debug(f'y = {y}')
+            raise ValueError('Ошибка в значении текущего года')
         
-            
-        
+        d = {'Котировка':['Бензин-регуляр92', 'Дизель'], 'Среднее':[self.abdt.iloc[0,0], self.abdt.iloc[0,1]], 'Норматив':norm, 'Лимит':[0.1, 0.2]}
+        self.logger.info(f'Средняя цена АБ92-регуляр {d["Среднее"][0]} \nСредняя цена ДТ {d["Среднее"][1]}')
+
+        dx = pd.DataFrame(d)
+        dx['max'] = dx['Норматив'] * dx['Лимит'] + dx['Норматив']
+        dx['Отклонение от норматива, %'] = ((dx['Среднее'] - dx['Норматив'])/dx['Норматив'] * 100).round(2)
+        dx['Дельта'] = dx['Среднее'] - dx['max'] 
+
+        return dx.set_index('Котировка').to_html()
+    
 
         
