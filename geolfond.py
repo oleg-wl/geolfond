@@ -1,4 +1,4 @@
-#!venv/bin/python3
+#!venv/bin/python
 
 """
 Основной модуль для запуска парсера. 
@@ -6,25 +6,26 @@
 """
 
 
+import html
 import Parser
-
-
-#logging.basicConfig(format='%(levelname)s, %(asctime)s: %(message)s (LINE: (%(lineno)d) [%(filename)s]', datefmt='%I:%M:%S %p', level=logging.DEBUG)
 
 def parse_reestr_full() -> None:
     #: Пропарсить весь реестр
+    #! В разработке
     try:
         logger = Parser.config_logger('geolfond_all_filters')
         parser = Parser.client()
-        tr = Parser.transformer()
         f = Parser._filter()
         for i in f.keys():
             logger.info(f'Загружаю {i}')
             data = parser.get_data_from_reestr(filter=i)
             logger.info(f'Загрузил {i}')
-            df = tr.create_df(data)
-            logger.info(f'Сохранил в {tr.path}')
-            tr.save_df(df, i)
+            tr = Parser.transformer(data=data)
+            tr.create_df()
+            logger.info(f'Обработал {i}, всего {len(tr.rosnedra)}')
+            
+            logger.info(f'Сохранил в')
+            tr.save_df()
 
     except Exception as e:
         logger.error(e)
@@ -36,26 +37,27 @@ def run_code() -> None:
     try:
         logger = Parser.config_logger('geolfond')
         parser = Parser.client()
-        transformer = Parser.transformer()
         logger.info('Начинаю загрузку')
 
         data = parser.get_data_from_reestr(filter='oil')
+        logger.info('Данные загружены')
+        
+        tr = Parser.transformer(data=data)
+        tr.create_df()
+        tr.save_df(dataframe=tr.rosnedra, name='oil')
+
         curr = parser.get_currency('01.01.2021')
         pr = parser.get_oil_price(rng=7)
+        tr.create_prices(curr=curr, pr=pr)
 
-        df = transformer.create_df(data)
-        transformer.save_df(df, 'oil')
-
-        transformer.create_prices(curr=curr, pr=pr)
-
-        x = Parser.sender()
-        msg = x.create_message(all=True)
-        x.send_message(msg)
+        ms = Parser.sender()
+        ms.create_message(all=False, filename=['prices.xlsx', 'oil.xlsx'], htmlstr='Выгрузка данных для дашборда')
+        ms.send_message_f()
     except: 
         logger.critical('Ошибка выгрузки')
-        x = Parser.sender()
-        msg = x.create_log_message()
-        x.send_message(msg)
+        errmsg = Parser.sender()
+        errmsg.create_log_message()
+        errmsg.send_message_f()
 
         raise
 

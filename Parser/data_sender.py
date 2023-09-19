@@ -43,7 +43,7 @@ class EmailSender:
         self.user = self.smtp_user or None
         
 
-    def create_message(self, all: bool = False, filename: str = None, htmlstr: str = None):
+    def create_message(self, all: bool = False, filename: str|list = None, htmlstr: str = None):
         """
         Создать сообщение с вложением для отправки на почту
 
@@ -58,43 +58,32 @@ class EmailSender:
 
         #: проверка типов
         if (not all) and (filename is None):
-            raise ValueError(f'Укажи имя файла для отправки или all = True для отправки всех файлов из папки {self.folder}')
-        elif (not all):
-            if not isinstance(filename, str):
-                raise TypeError(f'{filename} должен быть строкой')
-            elif (isinstance(filename, str)) and (not filename.__contains__('.xlsx')):
-                raise ValueError('Укажи .xlsx файл')
+            raise ValueError(f'Укажи имя файла или список  для отправки или all = True для отправки всех xlsx файлов из папки {self.folder}')
 
-            #: Отправить файл
-            else:
-                f = os.path.join(self.folder, filename)
-                if not os.path.exists(f):
-                    self.logger.debug(f'Путь к файлу для отправки не существует: {f}')
-                    raise FileNotFoundError('Файл несуществует')
-                else:
-                    with open(f, 'rb') as file:
-                        attach = MIMEApplication(file.read(), _subtype='xlsx')
-                    attach.add_header('Content-Disposition', 'attachment', filename=filename)
-                    msg.attach(attach)                    
-                    self.logger.info(f'{filename} добавлен во вложениe')
+        if (not all) and (isinstance(filename, str)):
+            self.files = [os.path.join(self.folder, filename)]
 
-        #: Отпрввить все xlsx в папке
-        elif all:
-        #: Добавить все эксель файлы во вложение к письму
-            for file in self.files:
-                with open(file, 'rb') as f:
-                    attach = MIMEApplication(f.read(), _subtype='xlsx')
-                   
-                filename = file.rsplit(sep='/')[-1]
-                attach.add_header('Content-Disposition', 'attachment', filename=filename)
-                msg.attach(attach)
-                    
-            self.logger.info(f'{len(self.files)} добавлено во вложения')
-        
-        if isinstance(htmlstr, str):
-            msg.attach(MIMEText(htmlstr, 'html'))    
-         
+        if (not all) and (isinstance(filename, list)) and (len(filename) > 0):
+        #: Отправить отдельные файлы из папки
+            #: Добавить список эксель файлов во вложение к письму переданный filename
+            self.files = [os.path.join(self.folder, file) for file in filename]
 
+        c = 0
+        for file in self.files:
+            if not os.path.exists(file):
+                self.logger.info(f'Файл {file} отсутствует')
+                continue
+            
+            fn = file.rsplit(sep='/')[-1] #имя файлаа
+            ft = file.rsplit(sep='.')[1]  #тип файла
+            with open(file, 'rb') as f:
+                c += 1
+                attach = MIMEApplication(f.read(), _subtype=ft)
+
+            attach.add_header('Content-Disposition', 'attachment', filename=fn)
+            msg.attach(attach)
+
+        self.logger.info(f'{c} добавлено во вложения')
 
         self.message = msg
         return self
@@ -112,7 +101,6 @@ class EmailSender:
 
     def create_log_message(self) -> EmailMessage:
 
-
         msg = EmailMessage()
         msg['Subject'] = 'Ошибка выгрузки. Лог файл'
         msg['From'] = self.smtp_user
@@ -127,5 +115,7 @@ class EmailSender:
             attach = log.read()
         msg.add_attachment(attach, maintype='application', subtype='txt', filename=self.logfile) 
         msg.add_header('Content-Disposition', 'attachment')
-        return msg
+
+        self.message = msg
+        return self
     

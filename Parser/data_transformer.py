@@ -364,6 +364,7 @@ class DataTransformer:
 
         #Свести в единый датафрейм цену на бензин рег-92 и на дизель 
         md = df_reg.merge(df_dt, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
+        
         self.abdt = md
         return self
 
@@ -380,7 +381,7 @@ class DataTransformer:
 
         y = datetime.datetime.now().year
         # [Цаб_вр, Цдт_вр] по годам
-        # Указано к в НК в текущей редакции. Править тут руками
+        # Указано к в НК в текущей редакции. Править тут руками в случае изменений в НК
         if y == 2023:
             norm = [56900, 53850]
         elif y == 2024:
