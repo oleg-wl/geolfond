@@ -370,3 +370,5 @@ headers_price = {
 }
 #: GET запрос к сайту биржи СПБ по Цаб_вр и Цдт_вр
 url_smtb = 'https://spimex.com/indexes/service_functions_oil.php?request=graph&code={index}&index=eti&market=P&litre=0&subcode=evr'
+#: GET запрос к ФАС
+url_fas = 'https://fas.gov.ru/pages/pokazateli-dla-vycheta-akciza'

@@ -1,4 +1,4 @@
-#!venv/bin/python
+#!venv/bin/python3
 
 """
 Основной модуль для запуска парсера. 
@@ -6,7 +6,6 @@
 """
 
 
-import html
 import Parser
 
 def parse_reestr_full() -> None:
@@ -51,6 +50,12 @@ def run_code() -> None:
         tr.create_prices(curr=curr, pr=pr)
 
         ms = Parser.sender()
+        print(ms.smtp_to)
+        
+        #Если в config.ini несколько адресатов, отправлять только на последний
+        ms.smtp_to = [ms.smtp_to[-1]]
+        print(ms.smtp_to)
+        
         ms.create_message(all=False, filename=['prices.xlsx', 'oil.xlsx'], htmlstr='Выгрузка данных для дашборда')
         ms.send_message_f()
     except: 

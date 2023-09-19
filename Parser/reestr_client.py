@@ -18,6 +18,7 @@ from .headers import cols as _cols
 from .headers import filter as _filter
 from .headers import headers_price as _hp
 from .headers import url_smtb as _urlsmtb
+from .headers import url_fas as _urlfas
 
 from .reestr_config import config_path, create_config
 from .reestr_config import config_logger, parser_logger, basic_logging
@@ -218,8 +219,13 @@ class ReestrRequest:
             d[index] = StringIO(r.text)
         
         return d
+
+    def get_fas_akciz(self) -> str:
+
+            r = self.session.get(url=_urlfas)
+            d = bs(r.text, 'html.parser')
         
-        
+            return [x for x in d.find_all('table')]
         
 
          

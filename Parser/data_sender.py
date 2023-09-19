@@ -4,13 +4,15 @@ import os
 
 import smtplib, ssl
 from email.message import EmailMessage
+#from email import policy
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+from email import policy
 
 from .reestr_config import create_config
-from .reestr_config import check_logfile, check_path, config_logger
+from .reestr_config import check_logfile, check_path, config_logger, basic_logging
 from .reestr_config import EmptyFolder
 
 class EmailSender:
@@ -42,7 +44,7 @@ class EmailSender:
 
         self.user = self.smtp_user or None
         
-
+    @basic_logging(msg='Создаю сообщенение', error='Ошибка при создании сообщения')
     def create_message(self, all: bool = False, filename: str|list = None, htmlstr: str = None):
         """
         Создать MIME сообщение для отправки на почту. Если all=False, filename=None (default), отправить письмо без вложений. 
@@ -53,7 +55,7 @@ class EmailSender:
         :return _type_: MIMEMultipart
         """
 
-        msg = MIMEMultipart()
+        msg = MIMEMultipart(policy=policy.default)
         msg['Subject'] = 'Выгрузка данных для дашборда'
         msg['From'] = self.smtp_user
         msg['To'] = ", ".join(self.smtp_to)
@@ -88,7 +90,7 @@ class EmailSender:
 
         if isinstance(htmlstr, str):
             msg.attach(MIMEText(htmlstr, 'html')) 
-
+        #msg = MIMEMultipart(policy=policy.default)
         self.message = msg
         return self
 
@@ -111,7 +113,7 @@ class EmailSender:
 
         #send log to first if multiple addrs 
         if isinstance(self.smtp_to, list): 
-            msg['To'] = self.smtp_to[0] 
+            msg['To'] = self.smtp_to[-1] 
         elif isinstance(self.smtp_to, str): msg['To'] = self.smtp_to 
 
         #: msg

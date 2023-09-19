@@ -62,7 +62,7 @@ def config_logger(name: str = __name__):
     ch_form = logging.Formatter('[%(name)s]: %(message)s', datefmt='%x %X')
 
     # в файл
-    fh = logging.FileHandler(check_logfile(), mode='w', encoding='utf-8')
+    fh = logging.FileHandler(check_logfile(), mode='a', encoding='utf-8')
     fh.setLevel(logging.DEBUG) #Логи в файл для отправки по почте
     fh.setFormatter(fh_form)
 
@@ -128,6 +128,14 @@ def basic_logging(msg: str , error: str, logger_name: str = __name__):
         return wrapper
     return add_logger
 
+def send_only_me(send_message):
+    @wraps(send_message)
+    def sender(*args, **kwargs):
+        r = send_message(*args, **kwargs)
+        del r.message['To']
+        r.message['To'] = r.smtp_to[-1]
+        return r
+    return sender
                 
 class EmptyFolder(Exception):
     def __init__(self) -> Exception:

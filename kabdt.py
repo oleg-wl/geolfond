@@ -2,13 +2,12 @@
 
 import Parser
 import datetime
-from email.mime.text import MIMEText
+#from email.mime.text import MIMEText
 
 def main():
 
     try: 
         n = datetime.datetime.strftime(datetime.datetime.now(), '%d.%m.%Y - %H:%M')
-
         
         c = Parser.client()
         data = c.get_abdt_index()
@@ -20,7 +19,7 @@ def main():
         ms = Parser.sender()
         ms.create_message(filename=None, htmlstr=s)
         ms.message.replace_header('Subject', f'Текущие лимиты Кдемп - {n}')
-        ms.message.attach(MIMEText('Выгрузка текущих средних цен Цаб_вр и Цдт_вр. \n \nС уважением', 'plain')) 
+        #ms.message.attach(MIMEText('Выгрузка текущих средних цен Цаб_вр и Цдт_вр. \n \nС уважением', 'plain')) 
         ms.send_message_f()
     except:
         errmsg = Parser.sender()
