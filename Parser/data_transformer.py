@@ -339,7 +339,10 @@ class DataTransformer:
         def prep_vals(df: pd.DataFrame) -> pd.DataFrame:
             #Простая функция подготовить df
             df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d', dayfirst=True)
-            return df[['date', 'value']]
+            df = df[['date', 'value']]
+            df_y = df.drop(df.tail(1).index) #Датафрейм без последнего дня для расчета показателя изменений
+
+            return (df, df_y)
 
         def mean_vals(df: pd.DataFrame) -> pd.DataFrame:
             #Средние значения цены для каждого месяца
@@ -352,23 +355,35 @@ class DataTransformer:
         
         #Бензин
 
-        df_reg = prep_vals(pd.read_csv(self.data['reg'], delimiter=';'))
-        df_reg = mean_vals(df_reg)
+        df_regs = prep_vals(pd.read_csv(self.data['reg'], delimiter=';'))
+
+        self.test_dfs_1 = df_regs[0].copy(deep=True)
+        self.test_dfs_2 = df_regs[1].copy(deep=True)
+        
+        df_reg = mean_vals(df_regs[0])
+        df_reg_y = mean_vals(df_regs[1])
 
         #Дизель
         dt_inds = ['dtl', 'dtm', 'dtz']
         l = []
+        l_y = []
         for i in dt_inds:
             dt = prep_vals((pd.read_csv(self.data[i], delimiter=';')))
-            l.append(dt) 
+            l.append(dt[0]) 
+            l_y.append(dt[1]) 
 
         df_dt = pd.concat(l)
+        df_dt_y = pd.concat(l_y)
+
         df_dt = mean_vals(df_dt)
+        df_dt_y = mean_vals(df_dt_y)
 
         #Свести в единый датафрейм цену на бензин рег-92 и на дизель 
         md = df_reg.merge(df_dt, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
+        md_y = df_reg_y.merge(df_dt_y, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
         
         self.abdt = md
+        self.abdt_y = md_y
         return self
 
     def kdemp(self) -> str:
@@ -397,18 +412,26 @@ class DataTransformer:
             self.logger.debug(f'y = {y}')
             raise ValueError('Ошибка в значении текущего года')
 
-
+        def if_zero(s1, s2):
+            r = s1 - s2
+            if r.all() == 0:
+                return 'Вчера не было торгов'
+            else: return r
         
-        d = {'Котировка':['Бензин-регуляр92', 'Дизель'], 'Средняя цена с начала месяца, руб./т':[self.abdt.iloc[0,0], self.abdt.iloc[0,1]], 'Норматив по НК РФ, руб./т':norm, 'Лимит отклонения цены, % от [2]':[0.1, 0.2]}
+        d = {'Котировка':['Бензин-регуляр92', 'Дизель'], 'Средняя цена с начала месяца, руб./т':[self.abdt.iloc[0,0], self.abdt.iloc[0,1]], 'Норматив по НК РФ, руб./т':norm, 'Лимит отклонения цены, % от [2]':[0.1, 0.2], 'yest':[self.abdt_y.iloc[0,0], self.abdt_y.iloc[0,1]]}
         self.logger.info(f'Средняя цена АБ92-регуляр {d["Средняя цена с начала месяца, руб./т"][0]} \nСредняя цена ДТ {d["Средняя цена с начала месяца, руб./т"][1]}')
 
         dx = pd.DataFrame(d)
+
+        
         dx['Верхняя граница лимита для получения демпфера, руб./т'] = dx['Норматив по НК РФ, руб./т'] * dx['Лимит отклонения цены, % от [2]'] + dx['Норматив по НК РФ, руб./т']
         dx['Отклонение от норматива, %'] = ((dx['Средняя цена с начала месяца, руб./т'] - dx['Норматив по НК РФ, руб./т'])/dx['Норматив по НК РФ, руб./т'] * 100).round(2)
         dx['Отклонение от верхней границы цены, руб./т'] = dx['Средняя цена с начала месяца, руб./т'] - dx['Верхняя граница лимита для получения демпфера, руб./т'] 
+        dx['Изменение накопленной средней за месяц за предыдущий день, руб/т'] = if_zero(dx['Средняя цена с начала месяца, руб./т'], dx['yest'])
         dx['Получение демпфера в текущем месяце'] = 'НЕТ' if (dx.iloc[0,6] >= 0) or (dx.iloc[1,6] >= 0) else 'ДА'
+        dx = dx.drop('yest', axis=1)
         
-        r = ['[0]','[1]','[2]','[3]','[4]=[1]*(1+[3])','[5]=[1]/[2]-1','[6]=[1]-[4]','[7]']
+        r = ['[0]','[1]','[2]','[3]','[4]=[1]*(1+[3])','[5]=[1]/[2]-1','[6]=[1]-[4]','[7]=[1]-([1] за предыдущий день)','[8]']
         c = dx.columns
         rn = pd.DataFrame(r).T.set_axis(c, axis=1)
 
