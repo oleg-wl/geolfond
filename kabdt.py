@@ -11,7 +11,6 @@ import datetime
 #from email.mime.text import MIMEText
 
 def main():
-    logs = Parser.reestr_config.config_logger()
 
     try: 
         n = datetime.datetime.strftime(datetime.datetime.now(), '%d.%m.%Y - %H:%M')
@@ -29,6 +28,7 @@ def main():
         #ms.message.attach(MIMEText('Выгрузка текущих средних цен Цаб_вр и Цдт_вр. \n \nС уважением', 'plain')) 
         ms.send_message_f()
     except Exception as e:
+        logs = Parser.reestr_config.config_logger()
         logs.exception(f'{e}')
         errmsg = Parser.sender()
         errmsg.create_log_message()
