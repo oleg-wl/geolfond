@@ -43,22 +43,28 @@ def run_code() -> None:
         data = parser.get_data_from_reestr(filter='oil')
         logger.info('Данные загружены')
         
+        #oil.xlsx
         tr = Parser.transformer(data=data)
         tr.create_df()
         tr.save_df(dataframe=tr.rosnedra, name='oil')
 
+        #prices.xlsx
         curr = parser.get_currency('01.01.2021')
         pr = parser.get_oil_price(rng=7)
         tr.create_prices(curr=curr, pr=pr)
+
+        #fas.xlsx
+        fas_data = parser.get_fas_akciz()
+        fas = Parser.transformer(data=fas_data)
+        fas.create_fas_akciz()
 
         ms = Parser.sender()
         print(ms.smtp_to)
         
         #Если в config.ini несколько адресатов, отправлять только на последний
         ms.smtp_to = [ms.smtp_to[-1]]
-        print(ms.smtp_to)
         
-        ms.create_message(all=False, filename=['prices.xlsx', 'oil.xlsx'], htmlstr='Выгрузка данных для дашборда')
+        ms.create_message(all=False, filename=['prices.xlsx', 'oil.xlsx', 'fas.xlsx'], htmlstr='Выгрузка данных для дашборда')
         ms.send_message_f()
     except: 
         logger.critical('Ошибка выгрузки')

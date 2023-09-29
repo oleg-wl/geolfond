@@ -222,7 +222,8 @@ class ReestrRequest:
 
     def get_fas_akciz(self) -> str:
 
-            r = self.session.get(url=_urlfas)
+            sess = requests.Session()
+            r = sess.get(url=_urlfas)
             d = bs(r.text, 'html.parser')
         
             return [x for x in d.find_all('table')]

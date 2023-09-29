@@ -13,6 +13,7 @@ vs.code
 database.db
 nohup.out
 *.db
+*test*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

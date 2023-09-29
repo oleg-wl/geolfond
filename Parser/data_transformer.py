@@ -455,7 +455,8 @@ class DataTransformer:
             m = pd.read_html(str(i), flavor='lxml')
             dfs.append(pd.concat(m, axis=1))
 
-        return dfs[-1]
+        d = dfs[-1].T
+        d.to_excel(os.path.join(self.path,'fas.xlsx'))
             
 
         
