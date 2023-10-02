@@ -17,6 +17,7 @@ from .headers import json_data as _json_data
 from .headers import cols as _cols
 from .headers import filter as _filter
 from .headers import headers_price as _hp
+from .headers import headers_price_duty as _hpd
 from .headers import url_smtb as _urlsmtb
 from .headers import url_fas as _urlfas
 
@@ -220,6 +221,29 @@ class ReestrRequest:
         
         return d
 
+    def get_oilprice_duty(self):
+        
+        # Основная ссылка для запроса
+        url1 = 'https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/'
+        resp = self.session.get(url=url1, headers=_hpd).text
+
+        # Найти последнюю ссылку на публикацию и ее дату
+        page = bs(resp, 'html.parser')
+        link = page.find('a', attrs={'title':re.compile('вывозных таможенных пошлин на нефть')})
+        
+        # Найти дату публикации
+        patt = '(\d{2} \w+ \d{4})'
+        date = re.findall(patt, str(link.span))
+
+        # Извлечь последнюю часть ссылки для добавления к ссылке и перехода на страницу с данными
+        url2 = link['href'].rsplit(sep='/')[-1]
+        resp2 = self.session.get(url=url1+url2, headers=_hpd).text
+        page2 = bs(resp2,'html.parser')
+        result = page2.find('table')
+        
+        # html строка с таблицей для добавления 
+        return str(result)
+    
     def get_fas_akciz(self) -> str:
 
             sess = requests.Session()
@@ -228,6 +252,3 @@ class ReestrRequest:
         
             return [x for x in d.find_all('table')]
         
-
-         
-            
