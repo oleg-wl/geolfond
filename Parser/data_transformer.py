@@ -321,9 +321,11 @@ class DataTransformer:
 
         #: группировка и Join
         m = df_curr.set_index('Dates').groupby(pd.Grouper(freq='MS')).mean().round(4)
-        merged_dfs = df_pr.merge(m, how='inner', left_index=True, right_index=True)
+        self.prices = df_pr.merge(m, how='inner', left_index=True, right_index=True)
         
-        merged_dfs.to_excel(os.path.join(self.path, 'prices.xlsx'))
+        return self
+        
+        #merged_dfs.to_excel(os.path.join(self.path, 'prices.xlsx'))
 
     def create_abdt_index(self):
         """
@@ -367,6 +369,7 @@ class DataTransformer:
         self.test_dfs_2 = df_regs[1].copy(deep=True)
         
         df_reg = mean_vals(df_regs[0])
+        #_y предыдущий день
         df_reg_y = mean_vals(df_regs[1])
 
         #Дизель
@@ -379,6 +382,7 @@ class DataTransformer:
             l_y.append(dt[1]) 
 
         df_dt = pd.concat(l)
+        # _предыдущий день
         df_dt_y = pd.concat(l_y)
 
         df_dt = mean_vals(df_dt)
@@ -418,35 +422,38 @@ class DataTransformer:
             self.logger.debug(f'y = {y}')
             raise ValueError('Ошибка в значении текущего года')
 
-        def monday():
-            d = datetime.datetime.now()
-            if d.isoweekday() == 1:
-                d = d - datetime.timedelta(days=3)
-            else: d = d - datetime.timedelta(days=1) 
-            return d.strftime('%d.%m.%Y')
-        
+        #def monday():
+        #    d = datetime.datetime.now()
+        #    if d.isoweekday() == 1:
+        #        d = d - datetime.timedelta(days=3)
+        #    else: d = d - datetime.timedelta(days=1) 
+        #    return d.strftime('%d.%m.%Y')
+        dt = datetime.datetime.now().strftime('%H:%M %d.%m.%Y')
+                
         d = {'Котировка':['Бензин-регуляр92', 'Дизель'], 'Средняя цена с начала месяца, руб./т':[self.abdt.iloc[0,0], self.abdt.iloc[0,1]], 'Норматив по НК РФ, руб./т':norm, 'Лимит отклонения цены, % от [2]':[0.1, 0.2], 'yest':[self.abdt_y.iloc[0,0], self.abdt_y.iloc[0,1]]}
-        self.logger.info(f'Средняя цена АБ92-регуляр {d["Средняя цена с начала месяца, руб./т"][0]} \nСредняя цена ДТ {d["Средняя цена с начала месяца, руб./т"][1]}')
-
+        
+        info = f'Средняя цена АБ92-регуляр {d["Средняя цена с начала месяца, руб./т"][0]} \nСредняя цена ДТ {d["Средняя цена с начала месяца, руб./т"][1]}'
+        self.logger.info(info)
+        
         dx = pd.DataFrame(d)
-        dt = datetime.datetime.now() - datetime.timedelta(days=1)
         
         dx['Верхняя граница лимита для получения демпфера, руб./т'] = dx['Норматив по НК РФ, руб./т'] * dx['Лимит отклонения цены, % от [2]'] + dx['Норматив по НК РФ, руб./т']
         dx['Отклонение от норматива, %'] = ((dx['Средняя цена с начала месяца, руб./т'] - dx['Норматив по НК РФ, руб./т'])/dx['Норматив по НК РФ, руб./т'] * 100).round(2)
         dx['Отклонение от верхней границы цены, руб./т'] = dx['Средняя цена с начала месяца, руб./т'] - dx['Верхняя граница лимита для получения демпфера, руб./т'] 
         dx['Изменение накопленной средней за месяц за предыдущий день, руб/т'] = dx['Средняя цена с начала месяца, руб./т'] - dx['yest']
-        dx['Получение демпфера в текущем месяце'] = 'НЕТ' if (dx.iloc[0,6] >= 0) or (dx.iloc[1,6] >= 0) else 'ДА'
+        dx['Получение демпфера в текущем месяце'] = 'НЕТ' if (dx.iloc[0,7] >= 0) or (dx.iloc[1,7] >= 0) else 'ДА'
         dx = dx.drop('yest', axis=1)
         
         r = ['[0]','[1]','[2]','[3]','[4]=[1]*(1+[3])','[5]=[1]/[2]-1','[6]=[1]-[4]','[7]=[1]-([1] за предыдущий день)','[8]']
         c = dx.columns
         rn = pd.DataFrame(r).T.set_axis(c, axis=1)
 
-        s0 = f'<p>Добрый день!<br>Направляю текущие средние Цаб_вр и Цдт_вр по итогам торгов {monday()}</p>'
+        s0 = f'<p>Добрый день!<br>Направляю текущие средние Цаб_вр и Цдт_вр по итогам торгов {dt}</p>'
         s1 = pd.concat([rn, dx]).to_html(index=False)
         s2 = '<p>*Если хотя бы по одному из видов топлива значение по столбцу [6] > 0 (т.е. средняя накопленная цена с начала месяца больше норматива, увеличенного на лимит отклонения цены (т.е. результат столбца 4), то в столбце [8] для обоих топлив демпфера <b>не будет</b> (т.е. проставляется ответ <b>НЕТ</b>).<br>Чтобы демпфер был, необходимо, чтобы одновременно по обоим видам топлива (АБ и ДТ) значение в столбце [6] было <b>меньше 0</b>.</p>'
         
         #return s1
+
         return s0+s1+s2
 
     def create_fas_akciz(self) -> pd.DataFrame:
@@ -455,9 +462,33 @@ class DataTransformer:
         for i in self.data:
             m = pd.read_html(str(i), flavor='lxml')
             dfs.append(pd.concat(m, axis=1))
+        
+        
+        def add_C():
+            #Функция для добавления в выгрузку условных значений Цабвр_С и Цдтвр_С
+            y = datetime.datetime.now().year
+            match y:
+                case 2023:
+                    ab = 68068
+                    dt = 60775
+                case 2024:
+                    ab = 71472
+                    dt = 63814
+                case 2025:
+                    ab = 75046
+                    dt = 67005
+                case 2026:
+                    ab = 78798
+                    dt = 70355
+            return ab, dt
 
         d = dfs[-1].T
-        d.to_excel(os.path.join(self.path,'fas.xlsx'))
+        d.columns = d.iloc[0]
+        d = d.drop(0)
+        d['Цабвр_С'], d['Цдтвр_С'] = add_C()
+        
+        self.fas = d
+        return self
         
     def create_oil_duty(self, dt: str = None) -> pd.DataFrame:
         
@@ -468,6 +499,7 @@ class DataTransformer:
         df[df.columns[1]] = df[df.columns[1]].str.extract(pat='(\d+,\d+)')
         
         return df
+    
             
 
         
