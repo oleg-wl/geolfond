@@ -222,15 +222,25 @@ class ReestrRequest:
         return d
 
     def get_oilprice_duty(self):
+        """Метод для получения данных Р в ЭП (Средняя цена юралс в период мониторинга)
+        Возвращает два инстанса класса 
+        date - str - html-таблица с данными
+        dt - str - дата публикации данных на сайте
+        Returns:
+            self
+        """
         
         # Основная ссылка для запроса
-        url1 = 'https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/'
-        resp = self.session.get(url=url1, headers=_hpd).text
+        try:
+            url1 = 'https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/'
+            resp = self.session.get(url=url1, headers=_hpd).text
 
         # Найти последнюю ссылку на публикацию и ее дату
-        page = bs(resp, 'html.parser')
-        link = page.find('a', attrs={'title':re.compile('вывозных таможенных пошлин на нефть')})
-        
+            page = bs(resp, 'html.parser')
+            link = page.find('a', attrs={'title':re.compile('вывозных таможенных пошлин на нефть')})
+        except: 
+            self.logger.error(f'Ошибка парсинга')
+            self.logger.debug(resp)
         # Найти дату публикации
         patt = '(\d{2} \w+ \d{4})'
         date = re.findall(patt, str(link.span))
@@ -241,8 +251,10 @@ class ReestrRequest:
         page2 = bs(resp2,'html.parser')
         result = page2.find('table')
         
-        # html строка с таблицей для добавления 
-        return str(result)
+        # html строка с таблицей для добавления
+        self.data = str(result)
+        self.dt = ''.join(date) #апак листа
+        return self
     
     def get_fas_akciz(self) -> str:
 

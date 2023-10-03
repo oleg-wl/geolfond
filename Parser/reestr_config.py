@@ -62,7 +62,7 @@ def config_logger(name: str = __name__):
     ch_form = logging.Formatter('[%(name)s]: %(message)s', datefmt='%x %X')
 
     # в файл
-    fh = logging.FileHandler(check_logfile(), mode='a', encoding='utf-8')
+    fh = logging.FileHandler(check_logfile(), mode='w', encoding='utf-8')
     fh.setLevel(logging.DEBUG) #Логи в файл для отправки по почте
     fh.setFormatter(fh_form)
 

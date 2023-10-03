@@ -10,16 +10,17 @@ from .reestr_config import config_logger, check_path, basic_logging
 
 class DataTransformer:
     
-    def __init__(self, data: [str|list|dict] = None, **kwargs) -> None:
+    def __init__(self, data: [str|list|dict] = None, dt = None) -> None:
         
         self.logger = config_logger('transformer')
         self.path = check_path()
 
         #Сделать переменные для обработки при инициализации класса
         # и return self 
-        self.data = data
-        self.rosnedra = None
-        self.abdt = None
+        self.data = data #передача данных в класс для обработки
+        self.dt = dt #переменная для хранения спарсенной даты
+        self.rosnedra = None #переменная для хранения результата обработки
+        self.abdt = None #переменная для хранения абдт индекса
         
         
 
@@ -448,7 +449,7 @@ class DataTransformer:
         #return s1
         return s0+s1+s2
 
-    def create_fas_akciz(self):
+    def create_fas_akciz(self) -> pd.DataFrame:
 
         dfs = []
         for i in self.data:
@@ -457,6 +458,16 @@ class DataTransformer:
 
         d = dfs[-1].T
         d.to_excel(os.path.join(self.path,'fas.xlsx'))
+        
+    def create_oil_duty(self, dt: str = None) -> pd.DataFrame:
+        
+        df = pd.read_html(self.data)
+        df = df[0]
+        
+        df.iloc[0,0] = dt
+        df[df.columns[1]] = df[df.columns[1]].str.extract(pat='(\d+,\d+)')
+        
+        return df
             
 
         
