@@ -10,7 +10,7 @@ from .reestr_config import config_logger, check_path, basic_logging
 
 class DataTransformer:
     
-    def __init__(self, data: [str|list|dict] = None, dt = None) -> None:
+    def __init__(self, data: [str|list|dict] = None) -> None:
         
         self.logger = config_logger('transformer')
         self.path = check_path()
@@ -18,7 +18,6 @@ class DataTransformer:
         #Сделать переменные для обработки при инициализации класса
         # и return self 
         self.data = data #передача данных в класс для обработки
-        self.dt = dt #переменная для хранения спарсенной даты
         self.rosnedra = None #переменная для хранения результата обработки
         self.abdt = None #переменная для хранения абдт индекса
         
@@ -325,8 +324,6 @@ class DataTransformer:
         
         return self
         
-        #merged_dfs.to_excel(os.path.join(self.path, 'prices.xlsx'))
-
     def create_abdt_index(self):
         """
         Метод для расчета коэф Цабвр и Цдтвр на основе данных Спббиржи
@@ -403,6 +400,7 @@ class DataTransformer:
         :raises ValueError: должны быть данные в self.abdt
         :return str: html таблица для отправки по почте
         """
+        self.create_abdt_index()
 
         if self.abdt is None:
             raise ValueError('Нет данных для расчета Кдемп')
@@ -490,16 +488,20 @@ class DataTransformer:
         self.fas = d
         return self
         
-    def create_oil_duty(self, dt: str = None) -> pd.DataFrame:
+    def create_oil_monitoring(self, dt: str = None) -> pd.DataFrame:
+        """
+        Метод возвращает датафрейм с последними ценами Юралс и НСД в период мониторинга, $
+        
+        :param str dt: дата публикации цен (инстанс dt после вызова метода класса client.get_oilprice_monitoring), defaults to None
+        :return pd.DataFrame: датафрейм с ценами для расчета ЭП (P) 
+        """
         
         df = pd.read_html(self.data)
         df = df[0]
         
         df.iloc[0,0] = dt
         df[df.columns[1]] = df[df.columns[1]].str.extract(pat='(\d+,\d+)')
-        
-        return df
-    
-            
 
-        
+        self.monitoring = df 
+        return self
+    

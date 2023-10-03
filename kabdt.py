@@ -8,7 +8,6 @@
 
 import Parser
 import datetime
-#from email.mime.text import MIMEText
 
 def main():
 
@@ -18,14 +17,12 @@ def main():
         c = Parser.client()
         data = c.get_abdt_index()
         m = Parser.transformer(data=data)
-        m.create_abdt_index()
             
         s = m.kdemp()
 
         ms = Parser.sender()
         ms.create_message(filename=None, htmlstr=s)
         ms.message.replace_header('Subject', f'Текущие лимиты Кдемп - {n}')
-        #ms.message.attach(MIMEText('Выгрузка текущих средних цен Цаб_вр и Цдт_вр. \n \nС уважением', 'plain')) 
         ms.send_message_f()
     except Exception as e:
         logs = Parser.reestr_config.config_logger()

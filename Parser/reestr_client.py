@@ -52,7 +52,7 @@ class ReestrRequest:
             prpass = self.config.get(s, 'proxy_pass')
 
             if pru is not None and prpass is not None:
-                self.session.proxies = {"https": f"socks5://{pru}:{prpass}@{prh}:{prp}", 'http':f'socks5://{pru}:{prpass}@{prh}:{prp}'}
+                self.session.proxies = {"https": f"socks5h://{pru}:{prpass}@{prh}:{prp}", 'http':f'socks5h://{pru}:{prpass}@{prh}:{prp}'}
             #: Только СОКС5. Для ssh -D 
             else: self.session.proxies = {"https": f"socks5://{prh}:{prp}", 'http':f'socks5://{prh}:{prp}'}
 
@@ -221,7 +221,7 @@ class ReestrRequest:
         
         return d
 
-    def get_oilprice_duty(self):
+    def get_oilprice_monitoring(self):
         """Метод для получения данных Р в ЭП (Средняя цена юралс в период мониторинга)
         Возвращает два инстанса класса 
         date - str - html-таблица с данными
@@ -239,7 +239,7 @@ class ReestrRequest:
             page = bs(resp, 'html.parser')
             link = page.find('a', attrs={'title':re.compile('вывозных таможенных пошлин на нефть')})
         except: 
-            self.logger.error(f'Ошибка парсинга')
+            self.logger.error(f'Ошибка при парсинге сайта минэка')
             self.logger.debug(resp)
         # Найти дату публикации
         patt = '(\d{2} \w+ \d{4})'

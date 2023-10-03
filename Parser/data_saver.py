@@ -5,7 +5,7 @@ from .data_transformer import DataTransformer
 class DataSaver(DataTransformer):
     
     def __init__(self, data: [str | list | dict] = None, dt=None, dfs : list = None, sheets : list = None) -> None:
-        super().__init__(data, dt)
+        super().__init__(data)
         self.dfs = dfs
         self.sheets = sheets
         
@@ -14,8 +14,9 @@ class DataSaver(DataTransformer):
         file = os.path.join(self.path, name)
         
         with pd.ExcelWriter(file) as writer:
-            
+            c = 0
             for df, sheet in zip(self.dfs, self.sheets):
+                c += 1
                 df.to_excel(writer, sheet_name=sheet, freeze_panes=(1, 0), na_rep='')
-        self.logger.info(f'Вся выгрузка сохранена в {file}')
+        self.logger.info(f'Сохранено {c} листов в {file}')
             
