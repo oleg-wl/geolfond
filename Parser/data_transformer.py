@@ -461,10 +461,24 @@ class DataTransformer:
             m = pd.read_html(str(i), flavor='lxml')
             dfs.append(pd.concat(m, axis=1))
         
+        y = datetime.datetime.now().year
+        
+        def add_vr():
+            # [Цаб_вр, Цдт_вр] по годам
+            # Указано к в НК в текущей редакции. Править тут руками в случае изменений в НК
+            match y:
+                case 2023:
+                    ab, dt = 56900, 53850
+                case 2024:
+                    ab, dt = 58650, 55500
+                case 2025:
+                    ab, dt = 60450, 57200
+                case 2026:
+                    ab, dt = 62300, 58950
+            return ab, dt
         
         def add_C():
             #Функция для добавления в выгрузку условных значений Цабвр_С и Цдтвр_С
-            y = datetime.datetime.now().year
             match y:
                 case 2023:
                     ab = 68068
@@ -479,11 +493,34 @@ class DataTransformer:
                     ab = 78798
                     dt = 70355
             return ab, dt
-
+        
+        def add_2021():
+            #Функция для добавления в выгрузку условных значений Цабвр_2021 и Цдтвр_2021
+            match y:
+                case 2023:
+                    ab = 62000
+                    dt = 56000
+                case 2024:
+                    ab = 65000
+                    dt = 58700
+                case 2025:
+                    ab = 68300
+                    dt = 61700
+                case 2026:
+                    ab = 71700
+                    dt = 64800
+            return ab, dt
+        
         d = dfs[-1].T
         d.columns = d.iloc[0]
         d = d.drop(0)
+        
+        d['Цабвр'], d['Цдтвр'] = add_vr()
         d['Цабвр_С'], d['Цдтвр_С'] = add_C()
+        d['Цабвр_2021'], d['Цдтвр_2021'] = add_2021()
+        
+        #Кинв от года
+        d['Кнв'] = 1.3 if y in range(2023, 2027, 1) else 1 
         
         self.fas = d
         return self
