@@ -86,6 +86,7 @@ def parser_logger(logger_name: str = __name__):
 
             try:
                 result = func(self, filter)
+                return result
             except JSONDecodeError as j_err:
                 logger.error(f'Вернулся пустой JSON: {j_err}')
                 raise j_err
@@ -99,7 +100,6 @@ def parser_logger(logger_name: str = __name__):
                 logger.exception(f'{e}')
                 raise e
                 
-            return result
         return wrapper
     return added_logger
 

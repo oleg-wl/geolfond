@@ -361,9 +361,6 @@ class DataTransformer:
         #Бензин
 
         df_regs = prep_vals(pd.read_csv(self.data['reg'], delimiter=';'))
-
-        self.test_dfs_1 = df_regs[0].copy(deep=True)
-        self.test_dfs_2 = df_regs[1].copy(deep=True)
         
         df_reg = mean_vals(df_regs[0])
         #_y предыдущий день
@@ -382,13 +379,19 @@ class DataTransformer:
         # _предыдущий день
         df_dt_y = pd.concat(l_y)
 
+        #обработка инстанса без группировки для картинки
+        self.ab_nogroup = df_regs[0]
+        self.dt_nogroup = df_dt
+
         df_dt = mean_vals(df_dt)
         df_dt_y = mean_vals(df_dt_y)
 
         #Свести в единый датафрейм цену на бензин рег-92 и на дизель 
         md = df_reg.merge(df_dt, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
         md_y = df_reg_y.merge(df_dt_y, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
-        
+
+
+         
         self.abdt = md
         self.abdt_y = md_y
         return self

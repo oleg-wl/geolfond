@@ -1,13 +1,14 @@
 from configparser import NoSectionError
 import glob
 import os
+import base64
 
 import smtplib, ssl
 from email.message import EmailMessage
-#from email import policy
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
 from email import policy
 
@@ -45,7 +46,7 @@ class EmailSender:
         self.user = self.smtp_user or None
         
     @basic_logging(msg='Создаю сообщенение', error='Ошибка при создании сообщения')
-    def create_message(self, all: bool = False, filename: str|list = None, htmlstr: str = None):
+    def create_message(self, all: bool = False, filename: str|list = None, htmlstr: str = None, image: bool = False):
         """
         Создать MIME сообщение для отправки на почту. Если all=False, filename=None (default), отправить письмо без вложений. 
 
@@ -89,8 +90,31 @@ class EmailSender:
             self.logger.info(f'{c} добавлено во вложения')
 
         if isinstance(htmlstr, str):
-            msg.attach(MIMEText(htmlstr, 'html')) 
-        #msg = MIMEMultipart(policy=policy.default)
+            msg.attach(MIMEText(htmlstr, 'html'))
+            
+        # добавить jpg в сообщение. Добавит две картинки из папки дата в сообщение (1) бензиновые средние нарастающим итогом за месяц, (2) дизельные средние нарастающим итогом за 
+        if image:
+            
+            imgtxt = MIMEText('<br><img src="cid:img1"><img src="cid:img2">', 'html')
+            msg.attach(imgtxt)
+            
+            ab = os.path.join(self.folder, 'benzin.jpg')
+            dt = os.path.join(self.folder, 'disel.jpg')
+            
+            with open(ab, 'rb') as img:
+                msgImage1 = MIMEImage(img.read())
+                msgImage1.add_header('Content-ID', '<img1>')
+            #with open(dt, 'rb') as img:
+            #    msgImage2 = MIMEImage(img.read())
+            #    msgImage2.add_header('Content-ID', f'<img2>')
+            
+        msg.attach(msgImage1)
+        #msg.attach(msgImage2)
+        
+            
+
+
+        #вовзаращет своейство класса сообщение
         self.message = msg
         return self
 

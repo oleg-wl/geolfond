@@ -3,6 +3,7 @@
 *.xlsx
 *.json
 *.zip
+*.txt
 prox*
 run.sh
 config.ini
@@ -14,6 +15,7 @@ database.db
 nohup.out
 *.db
 *test*
+data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
