@@ -6,13 +6,13 @@ import datetime
 import pandas as pd
 import numpy as np
 
-from .reestr_config import config_logger, check_path, basic_logging
+from .reestr_config import logger, check_path
 
 class DataTransformer:
     
     def __init__(self, data: [str|list|dict] = None) -> None:
         
-        self.logger = config_logger('transformer')
+        self.logger = logger
         self.path = check_path()
 
         #Сделать переменные для обработки при инициализации класса

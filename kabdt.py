@@ -11,6 +11,7 @@ import datetime
 
 def main():
 
+    logger = Parser._logger
     try: 
         n = datetime.datetime.strftime(datetime.datetime.now(), '%d.%m.%Y - %H:%M')
         
@@ -25,11 +26,7 @@ def main():
         ms.message.replace_header('Subject', f'Текущие лимиты Кдемп - {n}')
         ms.send_message_f()
     except Exception as e:
-        logs = Parser.reestr_config.config_logger()
-        logs.exception(f'{e}')
-        errmsg = Parser.sender()
-        errmsg.create_log_message()
-        errmsg.send_message_f()
+        logger.exception(e)
         
 if __name__ == "__main__":
     main()

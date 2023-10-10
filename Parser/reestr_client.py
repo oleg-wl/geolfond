@@ -22,7 +22,7 @@ from .headers import url_smtb as _urlsmtb
 from .headers import url_fas as _urlfas
 
 from .reestr_config import config_path, create_config
-from .reestr_config import config_logger, parser_logger, basic_logging
+from .reestr_config import add_logger, logger
 
 class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
@@ -34,7 +34,7 @@ class ReestrRequest:
 
         # Получение ключей config.ini
         self.config = create_config(config_path)
-        self.logger = config_logger('client')
+        self.logger = logger
 
         if self.config.has_section('SSL'):
             s = 'SSL'
@@ -67,8 +67,6 @@ class ReestrRequest:
         # Полученное количество записей подставить в сдлвать для следующего запроса
         self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = 1
 
-
-
     def get_records(self, headers: dict, json_data: dict) -> int | dict:
         """
         Метод для получения количества записей. Сначала нужен dummy запрос для получения количества записей в реестре
@@ -84,7 +82,7 @@ class ReestrRequest:
 
         return numrec, response
     
-    @parser_logger('reestr')
+    @add_logger
     def get_data_from_reestr(self, filter: str = "oil") -> list:
         """
         Метод делает запросы к базе данных Роснедр.
@@ -121,7 +119,7 @@ class ReestrRequest:
             i['filter'] = self.filter[1]
 
         #Возващает список словарей-строк и фильтр
-        self.logger.info(f'Данные загружены успешно. Всего {len(data)} строк')
+        self.logger.info(f'Данные загружены успешно. Всего {len(vals)} строк')
         return data
     
     def get_currency(self, start_date: str, end_date: str = None, today: bool = True) -> dict:
@@ -142,7 +140,6 @@ class ReestrRequest:
                 self.logger.error('Если today=False, укажи end_date')
                 raise ValueError
             
-        
         pat = r'\b(0[1-9]|[1-2]\d|3[0-1])\.(0[1-9]|1[0-2])\.\d{4}\b'
         if not re.fullmatch(pat, start_date) or not re.fullmatch(pat, end_date):
             self.logger.error('Неверный формат даты. Нвдо дд.мм.гггг')
@@ -150,7 +147,7 @@ class ReestrRequest:
         else:
             url = f'https://cbr.ru/currency_base/dynamics/?UniDbQuery.Posted=True&UniDbQuery.so=1&UniDbQuery.mode=1&UniDbQuery.date_req1=&UniDbQuery.date_req2=&UniDbQuery.VAL_NM_RQ=R01235&UniDbQuery.From={start_date}&UniDbQuery.To={end_date}'
             r = self.session.get(url=url)
-            self.logger.info('Запрос в ЦБ РФ по курсу')
+            self.logger.info('Загружаю средний курс ЦБ РФ')
             
             raw = bs(r.text, 'html.parser')
             table_tag = raw.table
@@ -160,7 +157,7 @@ class ReestrRequest:
             
             return data
 
-    @basic_logging(msg='Argus загружен', error='Ошибка парсера Argus', logger_name='Argus')
+
     def get_oil_price(self, rng: int = 7) -> dict[datetime.datetime, str]:
         """
         Метод для парсинга цен на нефть с сайта Минэкономразвития. Публикуемые котировки Argus для расчета коэфициента Кц.
@@ -215,11 +212,19 @@ class ReestrRequest:
         #: Требуемые индексы захардкодил. 
         ind = ['reg', 'dtl', 'dtm', 'dtz']
         d = {}
-        for index in ind:
-            r = self.session.get(_urlsmtb.format(index=index))
-            d[index] = StringIO(r.text)
+        try:
+            self.logger.info('Загружаю цены с СПБ биржи')
+            for index in ind:
+                r = self.session.get(_urlsmtb.format(index=index))
+                d[index] = StringIO(r.text)
+                
+                return d
+        except Exception as e:
+            self.logger.error('Ошибка загрузки цен с биржи')
+            self.logger.debug(e)
+            raise
+            
         
-        return d
 
     def get_oilprice_monitoring(self):
         """Метод для получения данных Р в ЭП (Средняя цена юралс в период мониторинга)
@@ -232,31 +237,36 @@ class ReestrRequest:
         
         # Основная ссылка для запроса
         try:
+            self.logger.info('Загружаю цены Юралс и Брент в мониторинге')
             url1 = 'https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/'
             resp = self.session.get(url=url1, headers=_hpd).text
 
         # Найти последнюю ссылку на публикацию и ее дату
             page = bs(resp, 'html.parser')
             link = page.find('a', attrs={'title':re.compile('вывозных таможенных пошлин на нефть')})
+            # Найти дату публикации
+            patt = '(\d{2} \w+ \d{4})'
+            date = re.findall(patt, str(link.span))
+
+            # Извлечь последнюю часть ссылки для добавления к ссылке и перехода на страницу с данными
+            url2 = link['href'].rsplit(sep='/')[-1]
+            resp2 = self.session.get(url=url1+url2, headers=_hpd).text
+            page2 = bs(resp2,'html.parser')
+            result = page2.find('table')
+            
+            # html строка с таблицей для добавления
+            self.data = str(result)
+            self.dt = ''.join(date) #апак листа
+            return self
+        
         except: 
             self.logger.error(f'Ошибка при парсинге сайта минэка')
             self.logger.debug(resp)
-        # Найти дату публикации
-        patt = '(\d{2} \w+ \d{4})'
-        date = re.findall(patt, str(link.span))
-
-        # Извлечь последнюю часть ссылки для добавления к ссылке и перехода на страницу с данными
-        url2 = link['href'].rsplit(sep='/')[-1]
-        resp2 = self.session.get(url=url1+url2, headers=_hpd).text
-        page2 = bs(resp2,'html.parser')
-        result = page2.find('table')
-        
-        # html строка с таблицей для добавления
-        self.data = str(result)
-        self.dt = ''.join(date) #апак листа
-        return self
     
     def get_fas_akciz(self) -> str:
+        
+            
+            self.logger.info('Загружаю цены ФАС')
 
             sess = requests.Session()
             r = sess.get(url=_urlfas)

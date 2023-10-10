@@ -14,7 +14,7 @@ def parse_reestr_full() -> None:
     #: Пропарсить весь реестр
     #! В разработке
     try:
-        logger = Parser.config_logger('geolfond_all_filters')
+        logger = Parser._logger
         parser = Parser.client()
         f = Parser._filter()
         for i in f.keys():
@@ -36,7 +36,7 @@ def run_code() -> None:
     #: Функция для скачивания только oil
 
     try:
-        logger = Parser.config_logger('geolfond')
+        logger = Parser._logger
         parser = Parser.client()
         logger.info('Начинаю загрузку')
 
@@ -87,11 +87,12 @@ def run_code() -> None:
         
         ms.create_message(all=False, filename=['main.xlsx'], htmlstr='Выгрузка данных для дашборда')
         ms.send_message_f()
-    except: 
-        logger.critical('Ошибка выгрузки')
-        errmsg = Parser.sender()
-        errmsg.create_log_message()
-        errmsg.send_message_f()
+    except Exception as e: 
+        logger.critical('Критическая ошибка выгрузки')
+        logger.debug(e)
+        #errmsg = Parser.sender()
+        #errmsg.create_log_message()
+        #errmsg.send_message_f()
 
         raise
 

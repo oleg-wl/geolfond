@@ -13,14 +13,15 @@ from email.mime.application import MIMEApplication
 from email import policy
 
 from .reestr_config import create_config
-from .reestr_config import check_logfile, check_path, config_logger, basic_logging
+from .reestr_config import check_path
+from .reestr_config import logger as _logger
 from .reestr_config import EmptyFolder
 
 class EmailSender:
 
     def __init__(self) -> None:
 
-        self.logger = config_logger('email-sender')
+        self.logger = _logger
 
         self.message = None
 
@@ -35,7 +36,6 @@ class EmailSender:
             self.logger.error('Необходимо указать данные для отправки email в config.ini') 
             raise  NoSectionError()
         
-        self.logfile = check_logfile()
         self.folder = check_path()
         self.files = glob.glob(rf'{self.folder}/*.xlsx')
         #: проверка что в папке есть файлы для отправки
@@ -45,7 +45,7 @@ class EmailSender:
 
         self.user = self.smtp_user or None
         
-    @basic_logging(msg='Создаю сообщенение', error='Ошибка при создании сообщения')
+    #@basic_logging(msg='Создаю сообщенение', error='Ошибка при создании сообщения')
     def create_message(self, all: bool = False, filename: str|list = None, htmlstr: str = None, image: bool = False):
         """
         Создать MIME сообщение для отправки на почту. Если all=False, filename=None (default), отправить письмо без вложений. 
@@ -92,23 +92,24 @@ class EmailSender:
         if isinstance(htmlstr, str):
             msg.attach(MIMEText(htmlstr, 'html'))
             
-        # добавить jpg в сообщение. Добавит две картинки из папки дата в сообщение (1) бензиновые средние нарастающим итогом за месяц, (2) дизельные средние нарастающим итогом за 
+        # добавить jpg в сообщение. Добавит две картинки из папки дата в сообщение (1) бензиновые средние нарастающим итогом за месяц, (2) дизельные средние нарастающим итогом за
+        #TODO доделать присоединение картинок к присьму 
         if image:
-            
-            imgtxt = MIMEText('<br><img src="cid:img1"><img src="cid:img2">', 'html')
-            msg.attach(imgtxt)
-            
+                        
             ab = os.path.join(self.folder, 'benzin.jpg')
             dt = os.path.join(self.folder, 'disel.jpg')
             
             with open(ab, 'rb') as img:
-                msgImage1 = MIMEImage(img.read())
-                msgImage1.add_header('Content-ID', '<img1>')
+                i = base64.encode(img.read())
+                i = base64.decode()
+                #i = base64.b64decode(i)
+            s = MIMEText(f'<img src="data:image/jpeg;base64"{i}>', 'html')
+            msg.attach(s)
             #with open(dt, 'rb') as img:
             #    msgImage2 = MIMEImage(img.read())
             #    msgImage2.add_header('Content-ID', f'<img2>')
             
-        msg.attach(msgImage1)
+        #msg.attach(msgImage1)
         #msg.attach(msgImage2)
         
             
@@ -128,25 +129,4 @@ class EmailSender:
             server.send_message(msg=self.message)
         t = self.message.get('To')
         self.logger.info(f'Выгрузка отправлено на адрес {t}')
-
-    def create_log_message(self) -> EmailMessage:
-
-        msg = EmailMessage()
-        msg['Subject'] = 'Ошибка выгрузки. Лог файл'
-        msg['From'] = self.smtp_user
-
-        #send log to first if multiple addrs 
-        if isinstance(self.smtp_to, list): 
-            msg['To'] = self.smtp_to[-1] 
-        elif isinstance(self.smtp_to, str): msg['To'] = self.smtp_to 
-
-        #: msg
-        with open(self.logfile, 'rb') as log:
-            attach = log.read()
-        msg.add_attachment(attach, maintype='application', subtype='txt', filename=self.logfile) 
-        msg.add_header('Content-Disposition', 'attachment')
-        self.logger.info('Создан файл с логом')
-
-        self.message = msg
-        return self
     
