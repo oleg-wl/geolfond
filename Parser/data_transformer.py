@@ -232,20 +232,6 @@ class DataTransformer:
             self.rosnedra = df[list(types.keys())].reset_index()
 
         return self 
-
-    #TODO: надо сделать логику сохранения инстанса
-    def save_df(self, dataframe: pd.DataFrame, name: str) -> None:
-        """
-        Метод для сохранения результата обработки в ексель файл
-
-        :param pd.DataFrame dataframe: датафрейм для сохранения в ексель
-        :param str name: фильтр для названия файла
-        """
-
-        excel_path = os.path.join(self.path, f'{name}.xlsx')
-        dataframe.to_excel(excel_path, sheet_name=name, freeze_panes=(1, 0), na_rep='')
-
-        self.logger.info(f'Данные сохранены в {excel_path}')
     
     def create_matrix(self) -> None:
         """
@@ -361,7 +347,6 @@ class DataTransformer:
             return means
         
         #Бензин
-
         df_regs = prep_vals(pd.read_csv(self.data['reg'], delimiter=';'))
         
         df_reg = mean_vals(df_regs[0])
@@ -399,6 +384,11 @@ class DataTransformer:
         return self
 
     def abdt_index_cumulative(self, ind: list[int, int]) -> None:
+        """
+        Метод для сохранения в эксель накопительных средних цен АБ92 и ДТ
+
+        :param list[int, int] ind: [Каб_вр, Кдт_вр]
+        """
 
         def meaning(df: pd.DataFrame):
             return [df.iloc[0:i+1, 1].mean(numeric_only=True) for i in range(len(df))]
