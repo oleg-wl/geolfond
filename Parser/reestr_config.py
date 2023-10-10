@@ -7,7 +7,6 @@
 import os
 from functools import wraps
 import logging
-from sys import stdout
 from requests.exceptions import JSONDecodeError, Timeout, RequestException
 
 from configparser import ConfigParser
@@ -17,9 +16,9 @@ basedir = os.path.abspath(os.path.dirname((__file__)))
 config_path = os.path.join(basedir, cf_path)
 
 
-logging.basicConfig(format='%(levelname)s - %(name)s on %(asctime)s: %(message)s (LINE: (%(lineno)d)' , datefmt='%x %X', level=logging.DEBUG)
-def logger(n = __name__):
-    return logging.getLogger(n)
+logging.basicConfig(format='%(levelname)s - %(asctime)s: %(message)s LINE: (%(lineno)d) in %(name)s' , datefmt='%x %X', level=logging.DEBUG)
+def logger():
+    return logging.getLogger(name=__name__)
 
 def create_config(path: os.path = config_path) -> ConfigParser:
     """

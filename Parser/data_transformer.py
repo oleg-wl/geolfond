@@ -9,6 +9,8 @@ import numpy as np
 from .reestr_config import logger, check_path
 
 class DataTransformer:
+    y = datetime.datetime.now().year
+    m = datetime.datetime.now().month
     
     def __init__(self, data: [str|list|dict] = None) -> None:
         
@@ -396,6 +398,29 @@ class DataTransformer:
         self.abdt_y = md_y
         return self
 
+    def abdt_index_cumulative(self, ind: list[int, int]) -> None:
+
+        def meaning(df: pd.DataFrame):
+            return [df.iloc[0:i+1, 1].mean(numeric_only=True) for i in range(len(df))]
+
+        #бензин
+        ab = self.ab_nogroup[(self.ab_nogroup.date.dt.month == self.m) & (self.ab_nogroup.date.dt.year == self.y)].reset_index(drop=True)
+        ab['Бензин92'] = meaning(ab)
+        ab['Бензин92_индикатив'] = ind[0] * 1.10
+        ab = ab.drop(labels='value', axis=1)
+
+        # дт
+        dt = self.dt_nogroup[(self.dt_nogroup.date.dt.month == self.m) & (self.dt_nogroup.date.dt.year == self.y)].groupby(by='date').mean().round().reset_index()
+        dt['Дизель'] = meaning(dt)
+        dt['Дизель_индикатив'] = ind[1] * 1.20 
+        dt = dt.drop(labels='value', axis=1)
+
+        m = ab.merge(dt, on='date').round().sort_index(ascending=False)
+        m['date'] = m['date'].dt.strftime('%d-%m-%Y')
+        
+        m.to_excel(os.path.join(self.path, 'СредняяЦенаАБДТ_накоп.xlsx'))
+        self.logger.info('Сохранил среднюю')
+
     def kdemp(self) -> str:
         """
         Метод возвращает строку html таблицы со средними показателями для расчета Кдемп и Кабдт для отправки по электронной почте или для телеграм бота
@@ -408,27 +433,23 @@ class DataTransformer:
         if self.abdt is None:
             raise ValueError('Нет данных для расчета Кдемп')
 
-        y = datetime.datetime.now().year
         # [Цаб_вр, Цдт_вр] по годам
         # Указано к в НК в текущей редакции. Править тут руками в случае изменений в НК
-        if y == 2023:
+        if self.y == 2023:
             norm = [56900, 53850]
-        elif y == 2024:
+        elif self.y == 2024:
             norm = [58650, 55500]
-        elif y == 2025:
+        elif self.y == 2025:
             norm = [60450, 57200]
-        elif y == 2026:
+        elif self.y == 2026:
             norm = [62300, 58950]
         else:
-            self.logger.debug(f'y = {y}')
+            self.logger.debug(f'y = {self.y}')
             raise ValueError('Ошибка в значении текущего года')
 
-        #def monday():
-        #    d = datetime.datetime.now()
-        #    if d.isoweekday() == 1:
-        #        d = d - datetime.timedelta(days=3)
-        #    else: d = d - datetime.timedelta(days=1) 
-        #    return d.strftime('%d.%m.%Y')
+        #Сохранить в эксель накопительную сначала месяца
+        self.abdt_index_cumulative(norm)
+        
         dt = datetime.datetime.now().strftime('%H:%M %d.%m.%Y')
                 
         d = {'Котировка':['Бензин-регуляр92', 'Дизель'], 'Средняя цена с начала месяца, руб./т':[self.abdt.iloc[0,0], self.abdt.iloc[0,1]], 'Норматив по НК РФ, руб./т':norm, 'Лимит отклонения цены, % от [2]':[0.1, 0.2], 'yest':[self.abdt_y.iloc[0,0], self.abdt_y.iloc[0,1]]}
