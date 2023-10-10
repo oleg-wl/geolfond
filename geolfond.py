@@ -13,8 +13,8 @@ import Parser
 def parse_reestr_full() -> None:
     #: Пропарсить весь реестр
     #! В разработке
+    logger = Parser._logger()
     try:
-        logger = Parser._logger
         parser = Parser.client()
         f = Parser._filter()
         for i in f.keys():
@@ -35,8 +35,8 @@ def parse_reestr_full() -> None:
 def run_code() -> None:
     #: Функция для скачивания только oil
 
+    logger = Parser._logger()
     try:
-        logger = Parser._logger
         parser = Parser.client()
         logger.info('Начинаю загрузку')
 

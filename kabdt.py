@@ -11,7 +11,7 @@ import datetime
 
 def main():
 
-    logger = Parser._logger
+    logger = Parser._logger()
     try: 
         n = datetime.datetime.strftime(datetime.datetime.now(), '%d.%m.%Y - %H:%M')
         
@@ -22,7 +22,7 @@ def main():
         s = m.kdemp()
 
         ms = Parser.sender()
-        ms.create_message(filename=None, htmlstr=s, image=True)
+        ms.create_message(filename=None, htmlstr=s, image=False)
         ms.message.replace_header('Subject', f'Текущие лимиты Кдемп - {n}')
         ms.send_message_f()
     except Exception as e:

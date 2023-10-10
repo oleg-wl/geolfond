@@ -34,7 +34,7 @@ class ReestrRequest:
 
         # Получение ключей config.ini
         self.config = create_config(config_path)
-        self.logger = logger
+        self.logger = logger()
 
         if self.config.has_section('SSL'):
             s = 'SSL'
@@ -218,7 +218,7 @@ class ReestrRequest:
                 r = self.session.get(_urlsmtb.format(index=index))
                 d[index] = StringIO(r.text)
                 
-                return d
+            return d
         except Exception as e:
             self.logger.error('Ошибка загрузки цен с биржи')
             self.logger.debug(e)

@@ -18,7 +18,8 @@ config_path = os.path.join(basedir, cf_path)
 
 
 logging.basicConfig(format='%(levelname)s - %(name)s on %(asctime)s: %(message)s (LINE: (%(lineno)d)' , datefmt='%x %X', level=logging.DEBUG)
-logger = logging.getLogger(name=__name__)
+def logger(n = __name__):
+    return logging.getLogger(n)
 
 def create_config(path: os.path = config_path) -> ConfigParser:
     """

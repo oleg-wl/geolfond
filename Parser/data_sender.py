@@ -21,7 +21,7 @@ class EmailSender:
 
     def __init__(self) -> None:
 
-        self.logger = _logger
+        self.logger = _logger()
 
         self.message = None
 

@@ -12,7 +12,7 @@ class DataTransformer:
     
     def __init__(self, data: [str|list|dict] = None) -> None:
         
-        self.logger = logger
+        self.logger = logger()
         self.path = check_path()
 
         #Сделать переменные для обработки при инициализации класса
