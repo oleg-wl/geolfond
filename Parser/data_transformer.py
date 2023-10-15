@@ -367,6 +367,7 @@ class DataTransformer:
         df_dt_y = pd.concat(l_y)
 
         #обработка инстанса без группировки для картинки
+        #TODO: группировка с начала года помесячно кумулятив
         self.ab_nogroup = df_regs[0]
         self.dt_nogroup = df_dt
 
@@ -391,6 +392,13 @@ class DataTransformer:
         """
 
         def meaning(df: pd.DataFrame):
+            df['month'] = df['date'].dt.to_period("M") # Добавить столбец с месяцами 
+
+            mnt_list = set(df['month'].to_list())
+            for mnt in mnt_list:
+                df
+            
+            
             return [df.iloc[0:i+1, 1].mean(numeric_only=True) for i in range(len(df))]
 
         #бензин
@@ -460,7 +468,7 @@ class DataTransformer:
         c = dx.columns
         rn = pd.DataFrame(r).T.set_axis(c, axis=1)
 
-        s0 = f'<p>Добрый день!<br>Направляю текущие средние Цаб_вр и Цдт_вр по итогам торгов {dt}</p>'
+        s0 = f'<p>Добрый день!<br>Направляю текущие средние Цаб_вр и Цдт_вр по итогам торгов {dt}</p><p><a href="https://blps-datalab/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
         s1 = pd.concat([rn, dx]).to_html(index=False)
         s2 = '<p>*Если хотя бы по одному из видов топлива значение по столбцу [6] > 0 (т.е. средняя накопленная цена с начала месяца больше норматива, увеличенного на лимит отклонения цены (т.е. результат столбца 4), то в столбце [8] для обоих топлив демпфера <b>не будет</b> (т.е. проставляется ответ <b>НЕТ</b>).<br>Чтобы демпфер был, необходимо, чтобы одновременно по обоим видам топлива (АБ и ДТ) значение в столбце [6] было <b>меньше 0</b>.</p>'
         
