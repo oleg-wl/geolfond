@@ -367,7 +367,6 @@ class DataTransformer:
         df_dt_y = pd.concat(l_y)
 
         #обработка инстанса без группировки для картинки
-        #TODO: группировка с начала года помесячно кумулятив
         self.ab_nogroup = df_regs[0]
         self.dt_nogroup = df_dt
 
@@ -399,15 +398,19 @@ class DataTransformer:
                 mask = df['month'] == mnt
                 l = [df[mask].iloc[0:r+1, 1].mean(numeric_only=True) for r in range(len(df[mask]))]
                 df.loc[mask, 'mean'] = l
-            df['mean'] = df['mean'].round()# .astype(int)
+            df['mean'] = df['mean'].round()
             return df.sort_values(by='date', ascending=False)
 
+        #Средняя кумулятивная цена бензина
         ab = meaning(self.ab_nogroup).reset_index(drop=True)
 
-        #собираем среднюю
-        dt = self.dt_nogroup.sort_values('date', ascending=False).set_index('date').groupby(pd.Grouper(freq='D')).mean('value').sort_index(ascending=False).reset_index().round()
+        #Средняя кумулятивная дизеля
+        #NOTE: по дизелю собирается один датафрейм из трех индексов. Ниже группировка по дням для средней. 
+        #Для того чтобы функция meaning возвращала корректные цифры - не меняй сортировку 
+        #Конечная сортировка в функции
+        dt = self.dt_nogroup.set_index('date').groupby(pd.Grouper(freq='D')).mean('value').reset_index()
         dt = meaning(dt)
-        m = ab.merge(dt, how='inner', on='date', suffixes=('_АБ', '_ДТ'))
+        m = ab.merge(dt, how='inner', on='date', suffixes=('_АБ', '_ДТ')).reset_index(drop=True)
 
         m['date'] = m['date'].dt.strftime('%d-%m-%Y')
         
