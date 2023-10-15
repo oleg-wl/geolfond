@@ -384,36 +384,31 @@ class DataTransformer:
         self.abdt_y = md_y
         return self
 
-    def abdt_index_cumulative(self, ind: list[int, int]) -> None:
+    def abdt_index_cumulative(self) -> None:
         """
         Метод для сохранения в эксель накопительных средних цен АБ92 и ДТ
-
-        :param list[int, int] ind: [Каб_вр, Кдт_вр]
         """
 
         def meaning(df: pd.DataFrame):
+            # Функция для добавления столбца с накопленной средней в датафрейм
+        
             df['month'] = df['date'].dt.to_period("M") # Добавить столбец с месяцами 
-
+        
             mnt_list = set(df['month'].to_list())
             for mnt in mnt_list:
-                df
-            
-            
-            return [df.iloc[0:i+1, 1].mean(numeric_only=True) for i in range(len(df))]
+                mask = df['month'] == mnt
+                l = [df[mask].iloc[0:r+1, 1].mean(numeric_only=True) for r in range(len(df[mask]))]
+                df.loc[mask, 'mean'] = l
+            df['mean'] = df['mean'].round()# .astype(int)
+            return df.sort_values(by='date', ascending=False)
 
-        #бензин
-        ab = self.ab_nogroup[(self.ab_nogroup.date.dt.month == self.m) & (self.ab_nogroup.date.dt.year == self.y)].reset_index(drop=True)
-        ab['Бензин92'] = meaning(ab)
-        ab['Бензин92_индикатив'] = ind[0] * 1.10
-        ab = ab.drop(labels='value', axis=1)
+        ab = meaning(self.ab_nogroup).reset_index(drop=True)
 
-        # дт
-        dt = self.dt_nogroup[(self.dt_nogroup.date.dt.month == self.m) & (self.dt_nogroup.date.dt.year == self.y)].groupby(by='date').mean().round().reset_index()
-        dt['Дизель'] = meaning(dt)
-        dt['Дизель_индикатив'] = ind[1] * 1.20 
-        dt = dt.drop(labels='value', axis=1)
+        #собираем среднюю
+        dt = self.dt_nogroup.sort_values('date', ascending=False).set_index('date').groupby(pd.Grouper(freq='D')).mean('value').sort_index(ascending=False).reset_index().round()
+        dt = meaning(dt)
+        m = ab.merge(dt, how='inner', on='date', suffixes=('_АБ', '_ДТ'))
 
-        m = ab.merge(dt, on='date').round().sort_index(ascending=False)
         m['date'] = m['date'].dt.strftime('%d-%m-%Y')
         
         m.to_excel(os.path.join(self.path, 'СредняяЦенаАБДТ_накоп.xlsx'))
@@ -427,6 +422,7 @@ class DataTransformer:
         :return str: html таблица для отправки по почте
         """
         self.create_abdt_index()
+        self.abdt_index_cumulative()
 
         if self.abdt is None:
             raise ValueError('Нет данных для расчета Кдемп')
@@ -446,7 +442,6 @@ class DataTransformer:
             raise ValueError('Ошибка в значении текущего года')
 
         #Сохранить в эксель накопительную сначала месяца
-        self.abdt_index_cumulative(norm)
         
         dt = datetime.datetime.now().strftime('%H:%M %d.%m.%Y')
                 
