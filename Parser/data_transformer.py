@@ -318,69 +318,37 @@ class DataTransformer:
         print(self.abdt)  
 
         :raises ValueError: если нет данных для обработки. Передай аргументу data конструктора результат client.get_abdt_index
-        :return _type_: self.abdt для метода kdemp
         """
 
         if (self.data is None) or (not isinstance(self.data, dict)):
             raise ValueError('Нет данных для обработки. Передай результат client.get_abdt_index')
 
-        def prep_vals(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+        def prep_vals(df: pd.DataFrame) -> pd.DataFrame:
             """
             Функция для создания датафрейма из исходных данных биржи
 
             :param pd.DataFrame df: датафрейм из self.data
-            :return tuple[pd.DataFrame, pd.Dataframe]: возвращает два дф. первый с текущими данными, второй с данными минус 1 день для вычетания отклонения
             """
             df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d', dayfirst=True)
             df = df[['date', 'value']].dropna()
-            df_y = df.drop(df.tail(1).index) #Датафрейм без последнего дня для расчета показателя изменений
 
-            return (df, df_y)
-
-        def mean_vals(df: pd.DataFrame) -> pd.DataFrame:
-            #Средние значения цены для каждого месяца
-            means = (df.set_index('date')
-                     .groupby(pd.Grouper(freq='MS'))
-                     .mean()
-                     .round()
-                     .sort_index(ascending=False))
-            return means
+            return df
         
         #Бензин
         df_regs = prep_vals(pd.read_csv(self.data['reg'], delimiter=';'))
-        
-        df_reg = mean_vals(df_regs[0])
-        #_y предыдущий день
-        df_reg_y = mean_vals(df_regs[1])
 
         #Дизель
         dt_inds = ['dtl', 'dtm', 'dtz']
         l = []
-        l_y = []
         for i in dt_inds:
             dt = prep_vals((pd.read_csv(self.data[i], delimiter=';')))
-            l.append(dt[0]) 
-            l_y.append(dt[1]) 
-
+            l.append(dt) 
         df_dt = pd.concat(l)
-        # _предыдущий день
-        df_dt_y = pd.concat(l_y)
 
         #обработка инстанса без группировки для картинки
-        self.ab_nogroup = df_regs[0]
+        self.ab_nogroup = df_regs
         self.dt_nogroup = df_dt
 
-        df_dt = mean_vals(df_dt)
-        df_dt_y = mean_vals(df_dt_y)
-
-        #Свести в единый датафрейм цену на бензин рег-92 и на дизель 
-        md = df_reg.merge(df_dt, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
-        md_y = df_reg_y.merge(df_dt_y, left_index=True, right_index=True, how='inner', suffixes=('_reg92', '_disel'))
-
-
-         
-        self.abdt = md
-        self.abdt_y = md_y
         return self
 
     def abdt_index_cumulative(self) -> None:
@@ -413,9 +381,13 @@ class DataTransformer:
         m = ab.merge(dt, how='inner', on='date', suffixes=('_АБ', '_ДТ')).reset_index(drop=True)
 
         m['date'] = m['date'].dt.strftime('%d-%m-%Y')
-        
-        m.to_excel(os.path.join(self.path, 'СредняяЦенаАБДТ_накоп.xlsx'))
+
         self.logger.info('Сохранил среднюю')
+
+        #:анкоммент для сохранения в эксель
+        m.to_excel(os.path.join(self.path, 'СредняяЦенаАБДТ_накоп.xlsx'))
+        self.abdt = m
+        return self 
 
     def kdemp(self) -> str:
         """
@@ -431,44 +403,54 @@ class DataTransformer:
             raise ValueError('Нет данных для расчета Кдемп')
 
         # [Цаб_вр, Цдт_вр] по годам
-        # Указано к в НК в текущей редакции. Править тут руками в случае изменений в НК
-        if self.y == 2023:
-            norm = [56900, 53850]
-        elif self.y == 2024:
-            norm = [58650, 55500]
-        elif self.y == 2025:
-            norm = [60450, 57200]
-        elif self.y == 2026:
-            norm = [62300, 58950]
-        else:
-            self.logger.debug(f'y = {self.y}')
-            raise ValueError('Ошибка в значении текущего года')
+        def add_ind():
+           # функция добавляет индикатив 
+            match self.y:
+                case 2023:
+                    ab, dt = 56900, 53850
+                case 2024:
+                    ab, dt = 58650, 55500
+                case 2025:
+                    ab, dt = 60450, 57200
+                case 2026:
+                    ab, dt = 62300, 58950
+                case _:
+                    raise ValueError('Ошибка в значении текущего года')
+            return int(ab*1.1), int(dt*1.2)
 
-        #Сохранить в эксель накопительную сначала месяца
-        
         dt = datetime.datetime.now().strftime('%H:%M %d.%m.%Y')
-                
-        d = {'Котировка':['Бензин-регуляр92', 'Дизель'], 'Средняя цена с начала месяца, руб./т':[self.abdt.iloc[0,0], self.abdt.iloc[0,1]], 'Норматив по НК РФ, руб./т':norm, 'Лимит отклонения цены, % от [2]':[0.1, 0.2], 'yest':[self.abdt_y.iloc[0,0], self.abdt_y.iloc[0,1]]}
-        
-        info = f'Средняя цена АБ92-регуляр {d["Средняя цена с начала месяца, руб./т"][0]} \nСредняя цена ДТ {d["Средняя цена с начала месяца, руб./т"][1]}'
-        self.logger.info(info)
-        
-        dx = pd.DataFrame(d)
-        
-        dx['Верхняя граница лимита для получения демпфера, руб./т'] = dx['Норматив по НК РФ, руб./т'] * dx['Лимит отклонения цены, % от [2]'] + dx['Норматив по НК РФ, руб./т']
-        dx['Отклонение от норматива, %'] = ((dx['Средняя цена с начала месяца, руб./т'] - dx['Норматив по НК РФ, руб./т'])/dx['Норматив по НК РФ, руб./т'] * 100).round(2)
-        dx['Отклонение от верхней границы цены, руб./т'] = dx['Средняя цена с начала месяца, руб./т'] - dx['Верхняя граница лимита для получения демпфера, руб./т'] 
-        dx['Изменение накопленной средней за месяц за предыдущий день, руб/т'] = dx['Средняя цена с начала месяца, руб./т'] - dx['yest']
-        dx['Получение демпфера в текущем месяце'] = 'НЕТ' if (dx.iloc[0,7] >= 0) or (dx.iloc[1,7] >= 0) else 'ДА'
-        dx = dx.drop('yest', axis=1)
-        
-        r = ['[0]','[1]','[2]','[3]','[4]=[1]*(1+[3])','[5]=[1]/[2]-1','[6]=[1]-[4]','[7]=[1]-([1] за предыдущий день)','[8]']
-        c = dx.columns
-        rn = pd.DataFrame(r).T.set_axis(c, axis=1)
 
-        s0 = f'<p>Добрый день!<br>Направляю текущие средние Цаб_вр и Цдт_вр по итогам торгов {dt}</p><p><a href="https://blps-datalab/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
-        s1 = pd.concat([rn, dx]).to_html(index=False)
-        s2 = '<p>*Если хотя бы по одному из видов топлива значение по столбцу [6] > 0 (т.е. средняя накопленная цена с начала месяца больше норматива, увеличенного на лимит отклонения цены (т.е. результат столбца 4), то в столбце [8] для обоих топлив демпфера <b>не будет</b> (т.е. проставляется ответ <b>НЕТ</b>).<br>Чтобы демпфер был, необходимо, чтобы одновременно по обоим видам топлива (АБ и ДТ) значение в столбце [6] было <b>меньше 0</b>.</p>'
+        self.abdt['Бензин92_индикатив'], self.abdt['Дизель_индикатив'] = add_ind()
+        self.abdt = self.abdt[(self.abdt['month_АБ'].dt.month == self.m) & (self.abdt['month_АБ'].dt.year == self.y)]
+
+        #html для вставки демфера
+        demp = '<b style="color: red;">НЕТ</b>' if ((self.abdt.loc[0,'mean_АБ'] - self.abdt.loc[0,'Бензин92_индикатив']) >= 0) or ((self.abdt.loc[0,'mean_ДТ'] - self.abdt.loc[0,'Дизель_индикатив']) >= 0) else '<b style="color: green;">ДА</b>'
+
+        
+        names = {
+            'date':'Дата',
+            'value_АБ':'АБ',
+            'mean_АБ':'Средняя_АБ',
+            'Бензин92_индикатив':'Бензин92_индикатив',
+            'value_ДТ':'ДТ',
+            'mean_ДТ':'Средняя_ДТ',
+            'Дизель_индикатив':'Дизель_индикатив'
+            }
+
+        types = {
+            'АБ':'int',
+            'ДТ':'int',
+            'Средняя_АБ':'int',
+            'Средняя_ДТ':'int'}
+        
+        self.abdt.rename(columns=names, inplace=True)
+        s1 = self.abdt[list(names.values())].round().astype(types).to_html(index=False, border=1)
+
+                
+
+        s0 = f'<p>Добрый день!<br>Направляю текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Получение демпфера в этом месяце - {demp}*</p><p><a href="https://blps-datalab/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
+        
+        s2 = '<p>*Если хотя бы по одному из видов топлива средняя накопленная цена с начала месяца больше норматива, увеличенного на лимит отклонения цены (т.е. результат столбца 4), то в столбце [8] для обоих топлив демпфера <b>не будет</b></p>'
         
         #return s1
 

@@ -16,7 +16,7 @@ basedir = os.path.abspath(os.path.dirname((__file__)))
 config_path = os.path.join(basedir, cf_path)
 
 
-logging.basicConfig(format='%(levelname)s - %(asctime)s: %(message)s LINE: (%(lineno)d) in %(name)s' , datefmt='%x %X', level=logging.WARNING)
+logging.basicConfig(format='%(levelname)s - %(asctime)s: %(message)s LINE: (%(lineno)d) in %(name)s' , datefmt='%x %X', level=logging.DEBUG)
 def logger():
     return logging.getLogger(name=__name__)
 
