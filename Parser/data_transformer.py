@@ -5,6 +5,7 @@ import datetime
 
 import pandas as pd
 import numpy as np
+from pretty_html_table import build_table
 
 from .reestr_config import logger, check_path
 
@@ -444,15 +445,19 @@ class DataTransformer:
             'Средняя_ДТ':'int'}
         
         self.abdt.rename(columns=names, inplace=True)
-        s1 = self.abdt[list(names.values())].round().astype(types).to_html(index=False, border=1)
+        d = self.abdt[list(names.values())].round().astype(types)
+        s1 = build_table(d, 'blue_light', index=False)  #conditions={'Средняя_АБ':{'max':self.abdt.loc[0,'Бензин92_индикатив']+1,
+                                                        #                 'max_color':'red',
+                                                        #                 'min':self.abdt.loc[0,'Бензин92_индикатив'],
+                                                        #                 'min_color':'green'},
+                                                        #           'Средняя_ДТ':{'max':self.abdt.loc[0,'Дизель_индикатив']+1,
+                                                        #                 'max_color':'red',
+                                                        #                 'min':self.abdt.loc[0,'Дизель_индикатив'],
+                                                        #                 'min_color':'green'}})
 
-                
-
-        s0 = f'<p>Добрый день!<br>Направляю текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Получение демпфера в этом месяце - {demp}*</p><p><a href="https://blps-datalab/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
+        s0 = f'<p>Добрый день!<br>Направляю текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Получение демпфера в этом месяце - {demp}*</p><p><a href="https://blps-datalab.gazprom-neft.local/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
         
-        s2 = '<p>*Если хотя бы по одному из видов топлива средняя накопленная цена с начала месяца больше норматива, увеличенного на лимит отклонения цены (т.е. результат столбца 4), то в столбце [8] для обоих топлив демпфера <b>не будет</b></p>'
-        
-        #return s1
+        s2 = '<p>*Если хотя бы по одному из видов топлива средняя накопленная цена с начала месяца больше норматива, увеличенного на лимит отклонения цены, то для обоих топлив демпфера <b>не будет</b></p>'
 
         return s0+s1+s2
 
