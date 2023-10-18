@@ -419,23 +419,32 @@ class DataTransformer:
                     raise ValueError('Ошибка в значении текущего года')
             return int(ab*1.1), int(dt*1.2)
 
-        dt = datetime.datetime.now().strftime('%H:%M %d.%m.%Y')
 
-        self.abdt['Бензин92_индикатив'], self.abdt['Дизель_индикатив'] = add_ind()
+        self.abdt['Бензин92_норматив'], self.abdt['Дизель_норматив'] = add_ind()
+        self.abdt.loc[1:,'Бензин92_норматив'] = ""
+        self.abdt.loc[1:,'Дизель_норматив'] = ""
+        
         self.abdt = self.abdt[(self.abdt['month_АБ'].dt.month == self.m) & (self.abdt['month_АБ'].dt.year == self.y)]
 
         #html для вставки демфера
-        demp = '<b style="color: red;">НЕТ</b>' if ((self.abdt.loc[0,'mean_АБ'] - self.abdt.loc[0,'Бензин92_индикатив']) >= 0) or ((self.abdt.loc[0,'mean_ДТ'] - self.abdt.loc[0,'Дизель_индикатив']) >= 0) else '<b style="color: green;">ДА</b>'
+        dt = self.abdt.loc[0,'date']
+        delt_ab = self.abdt.loc[0,'mean_АБ'] - self.abdt.loc[0,'Бензин92_норматив']
+        delt_dt = self.abdt.loc[0,'mean_ДТ'] - self.abdt.loc[0,'Дизель_норматив']
+        color = 'red' if (delt_ab >= 0) or (delt_dt >= 0) else 'green'
+        
+        demp = f'<b style="color: red;">НЕТ</b>' if (delt_ab >= 0) or (delt_dt >= 0) else f'<b style="color: green;">ДА</b>'
+        demp_num = f'АБ: <b style="color: {color};">{abs(delt_ab):n}</b> руб.; ДТ: <b style="color: {color};">{abs(delt_dt):n}</b> руб.'
+        
 
         
         names = {
             'date':'Дата',
             'value_АБ':'АБ',
             'mean_АБ':'Средняя_АБ',
-            'Бензин92_индикатив':'Бензин92_индикатив',
+            'Бензин92_норматив':'Бензин92_норматив',
             'value_ДТ':'ДТ',
             'mean_ДТ':'Средняя_ДТ',
-            'Дизель_индикатив':'Дизель_индикатив'
+            'Дизель_норматив':'Дизель_норматив'
             }
 
         types = {
@@ -446,18 +455,25 @@ class DataTransformer:
         
         self.abdt.rename(columns=names, inplace=True)
         d = self.abdt[list(names.values())].round().astype(types)
-        s1 = build_table(d, 'blue_light', index=False)  #conditions={'Средняя_АБ':{'max':self.abdt.loc[0,'Бензин92_индикатив']+1,
+        d.to_excel(os.path.join(self.path, 'СредняяЦенаАБДТ.xlsx'), index=False)
+        self.d = d #for tests
+        
+        #d = d.apply(lambda x:'{:,}'.format(x).replace(',',' '), axis=0)
+        #s1 = d.to_html(index=False, col_space=100, justify='center',)
+        
+        s1 = build_table(d, 'grey_light', index=False, font_family='Calibri', font_size='12px', width='100px', text_align='center') 
+                                                        #conditions={'Средняя_АБ':{'max':self.abdt.loc[0,'Бензин92_норматив']+1,
                                                         #                 'max_color':'red',
-                                                        #                 'min':self.abdt.loc[0,'Бензин92_индикатив'],
+                                                        #                 'min':self.abdt.loc[0,'Бензин92_норматив'],
                                                         #                 'min_color':'green'},
-                                                        #           'Средняя_ДТ':{'max':self.abdt.loc[0,'Дизель_индикатив']+1,
+                                                        #           'Средняя_ДТ':{'max':self.abdt.loc[0,'Дизель_норматив']+1,
                                                         #                 'max_color':'red',
-                                                        #                 'min':self.abdt.loc[0,'Дизель_индикатив'],
+                                                        #                 'min':self.abdt.loc[0,'Дизель_норматив'],
                                                         #                 'min_color':'green'}})
 
-        s0 = f'<p>Добрый день!<br>Направляю текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Получение демпфера в этом месяце - {demp}*</p><p><a href="https://blps-datalab.gazprom-neft.local/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
+        s0 = f'<p>Добрый день!<br>Направляем текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Прогноз получения демпфера в этом месяце - {demp}</p><p>Запас цены до норматива*: {demp_num}</p><p><a href="https://blps-datalab.gazprom-neft.local/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
         
-        s2 = '<p>*Если хотя бы по одному из видов топлива средняя накопленная цена с начала месяца больше норматива, увеличенного на лимит отклонения цены, то для обоих топлив демпфера <b>не будет</b></p>'
+        s2 = '<p>*Если хотя бы по одному из видов топлива средняя цена по итогам месца будет превышать норматив, то демпфер обнуляется как по АБ, так и по ДТ'
 
         return s0+s1+s2
 

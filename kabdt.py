@@ -22,7 +22,7 @@ def main():
         s = m.kdemp()
 
         ms = Parser.sender()
-        ms.create_message(filename='СредняяЦенаАБДТ_накоп.xlsx', htmlstr=s, image=False)
+        ms.create_message(filename=['СредняяЦенаАБДТ_накоп.xlsx','СредняяЦенаАБДТ.xlsx'], htmlstr=s, image=False)
         ms.message.replace_header('Subject', f'Текущие лимиты Кдемп - {n}')
         ms.send_message_f()
     except Exception as e:
