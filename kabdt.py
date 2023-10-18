@@ -22,9 +22,10 @@ def main():
         s = m.kdemp()
 
         ms = Parser.sender()
-        ms.create_message(filename=['СредняяЦенаАБДТ_накоп.xlsx','СредняяЦенаАБДТ.xlsx'], htmlstr=s, image=False)
-        ms.message.replace_header('Subject', f'Текущие лимиты Кдемп - {n}')
-        ms.send_message_f()
+        #ms.create_message(filename=['СредняяЦенаАБДТ_накоп.xlsx','СредняяЦенаАБДТ.xlsx'], htmlstr=s, image=False)
+        #ms.message.replace_header('Subject', f'Текущие лимиты Кдемп - {n}')
+        #ms.send_message_f()
+        ms.owa_message(subj=f'Текущие лимиты Кдемп - {n}', msg=s, attch=['СредняяЦенаАБДТ.xlsx','СредняяЦенаАБДТ_накоп.xlsx'])
     except Exception as e:
         logger.exception(e)
         

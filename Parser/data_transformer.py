@@ -433,7 +433,7 @@ class DataTransformer:
         color = 'red' if (delt_ab >= 0) or (delt_dt >= 0) else 'green'
         
         demp = f'<b style="color: red;">НЕТ</b>' if (delt_ab >= 0) or (delt_dt >= 0) else f'<b style="color: green;">ДА</b>'
-        demp_num = f'АБ: <b style="color: {color};">{abs(delt_ab):n}</b> руб.; ДТ: <b style="color: {color};">{abs(delt_dt):n}</b> руб.'
+        demp_num = f'АБ: <b style="color: {color};">{delt_ab*-1:n}</b> руб./тонна; ДТ: <b style="color: {color};">{delt_dt*-1:n}</b> руб./тонна'
         
 
         
