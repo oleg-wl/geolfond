@@ -1,8 +1,8 @@
 #: Переменные для создания фильтров и запроса к API
 
 
-def filter(filter: str = None): 
-    #Функция для быстрого выбора фильтра
+def filter(filter: str = None):
+    # Функция для быстрого выбора фильтра
 
     # Список фильтров
     lfilt: dict[str, str] = {
@@ -22,8 +22,8 @@ def filter(filter: str = None):
         try:
             return filter, lfilt[filter]
         except KeyError:
-            raise KeyError(f"Ошибка! Неверное значение фильтра для выгрузки {filter}") 
-            
+            raise KeyError(f"Ошибка! Неверное значение фильтра для выгрузки {filter}")
+
 
 #: Название столбцов для pandas
 #!: При изменении значений (=изменении столбцов) измени названия столбцов и пересоздай базу данных или где там у тебя данные хранятся
@@ -353,39 +353,39 @@ json_data: dict = {
 #: Запросы к минэк. Цены для P и P в ЭП
 #: Средняя цена Юралс
 headers_price = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/117.0',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-    'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Referer': 'https://economy.gov.ru/material/departments/d12/konyunktura_mirovyh_tovarnyh_rynkov/',
-    'DNT': '1',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
-    'Sec-Fetch-User': '?1',
-    'Sec-GPC': '1',
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/117.0",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Referer": "https://economy.gov.ru/material/departments/d12/konyunktura_mirovyh_tovarnyh_rynkov/",
+    "DNT": "1",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-User": "?1",
+    "Sec-GPC": "1",
 }
 
 #: Заголовки для запроса Цены на нефть в период мониторинга (Р в ЭП)
 headers_price_duty = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'DNT': '1',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Sec-GPC': '1',
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "DNT": "1",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Sec-GPC": "1",
 }
 
 #: GET запрос к сайту биржи СПБ по Цаб_вр и Цдт_вр
-url_smtb = 'https://spimex.com/indexes/service_functions_oil.php?request=graph&code={index}&index=eti&market=P&litre=0&subcode=evr'
+url_smtb = "https://spimex.com/indexes/service_functions_oil.php?request=graph&code={index}&index=eti&market=P&litre=0&subcode=evr"
 
 #: GET запрос к ФАС
-url_fas = 'https://fas.gov.ru/pages/pokazateli-dla-vycheta-akciza'
+url_fas = "https://fas.gov.ru/pages/pokazateli-dla-vycheta-akciza"
