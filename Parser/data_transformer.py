@@ -4,6 +4,7 @@ import os
 import datetime
 
 import pandas as pd
+from bs4 import BeautifulSoup as bs
 import numpy as np
 from pretty_html_table import build_table
 
@@ -520,6 +521,24 @@ class DataTransformer:
         s2 = "<p>*Если хотя бы по одному из видов топлива средняя цена по итогам месца будет превышать норматив, то демпфер обнуляется как по АБ, так и по ДТ"
 
         return s0 + s1 + s2
+    
+    def soup_html(self, html) -> str:
+        page = bs(html, 'lxml')
+        
+        page.tbody.find_all('td')[3]['rowspan'] = len(page.tbody.tr) - 1 
+        page.tbody.find_all('td')[6]['rowspan'] = len(page.tbody.tr) - 1 
+
+        #td с индикативом для добавления атрибута rowspan по количеству строк (дней) в таблице
+        for i in page.tbody.find('tr').find_all('td'):
+            if (i.string == '62 590') or (i.string == '64 620'):
+                i['rowspan'] = len(page.tbody.tr)
+
+        #убрать пустые td для корректного rowspan
+        for r in page.tbody.find_all('td'):
+                if r.string is None:
+                    r.extract()
+        
+        return bs.prettify(page)        
 
     def create_fas_akciz(self) -> pd.DataFrame:
         dfs = []

@@ -20,6 +20,7 @@ def main():
         m = Parser.transformer(data=data)
 
         s = m.kdemp()
+        s = m.soup_html(s)
 
         ms = Parser.sender()
 
