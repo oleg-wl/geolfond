@@ -1,6 +1,3 @@
-#!venv/bin/python3
-# -*- coding=utf-8 -*-
-
 """
 Модуль для запроса к серверу и получения сырых данных
 """
@@ -187,8 +184,8 @@ class ReestrRequest:
         dates: list = []
         prices: list = []
 
-        pat_dt = re.compile("(?P<date>\w* \d{4})")
-        pat_price = re.compile("(?P<usd>\d{1,3},\d{1,2})")
+        pat_dt = re.compile(r"(?P<date>\w* \d{4})")
+        pat_price = re.compile(r"(?P<usd>\d{1,3},\d{1,2})")
 
         self.logger.info("Загружаю котировки Argus")
         for counts in range(1, rng):
@@ -270,7 +267,7 @@ class ReestrRequest:
                 "a", attrs={"title": re.compile("вывозных таможенных пошлин на нефть")}
             )
             # Найти дату публикации
-            patt = "(\d{2} \w+ \d{4})"
+            patt = r"(\d{2} \w+ \d{4})"
             date = re.findall(patt, str(link.span))
 
             # Извлечь последнюю часть ссылки для добавления к ссылке и перехода на страницу с данными

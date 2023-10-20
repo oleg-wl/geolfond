@@ -1,6 +1,6 @@
-#!venv/bin/python3
 import re
 import os
+from io import StringIO
 import datetime
 
 import pandas as pd
@@ -77,8 +77,8 @@ class DataTransformer:
 
         # Извлечение ИНН:
         # Паттерны regrex
-        pattern_for_inn = "(\d{10,12})"
-        pattern_for_replace_inn = "( \(ИНН.*\)$)"
+        pattern_for_inn = r"(\d{10,12})"
+        pattern_for_replace_inn = r"( \(ИНН.*\)$)"
         patt_status = "(Аннулирование|Приостановление|Ограничение)"
 
         df["INN"] = df["owner_full"].str.extract(pattern_for_inn)
@@ -144,7 +144,7 @@ class DataTransformer:
         # Извлечение номеров предыдущих и будущих:
         pattern_for_lic = "([А-Я]+[0-9]+[-А-Я]+)"  # Паттерн для извлечения номера ранее выданной лицензии
         pattern_for_date = (
-            "([\d\.]+$)"  # Паттерн для извлечения даты ранее выданной лицензии
+            r"([\d\.]+$)"  # Паттерн для извлечения даты ранее выданной лицензии
         )
 
         # Извлечение данных предыдущих лицензий
@@ -165,7 +165,7 @@ class DataTransformer:
         # Извлечение координат:
         # Паттерн regrex
         pattern_coord = (
-            "(?P<N>\d*°\d*'[\d\.]+\"N)(?: *)(?P<E>[\d-]*°\d*'[\d\.]+\"[E|Е])"
+            r"(?P<N>\d*°\d*'[\d\.]+\"N)(?: *)(?P<E>[\d-]*°\d*'[\d\.]+\"[E|Е])"
         )
 
         coords = (
@@ -181,7 +181,7 @@ class DataTransformer:
 
         # Функция для извлечения радиан из столбцов N и E
         def to_rads(value) -> float:
-            pattern = "(\d*)°(\d*)'(\d*\.*\d*)"
+            pattern = r"(\d*)°(\d*)'(\d*\.*\d*)"
             val = re.findall(pattern=pattern, string=value)[0]
             return round(float(val[0]) + float(val[1]) / 60 + float(val[2]) / 3600, 5)
 
@@ -254,11 +254,11 @@ class DataTransformer:
         self.rosnedra["prew_"] = (
             self.rosnedra["prew_full"]
             .str.replace("\n", ":", regex=True)
-            .str.replace(" от \d\d\.\d\d", "", regex=True)
+            .str.replace(r" от \d\d\.\d\d", "", regex=True)
         )
 
         # Извлечь все предыдущие лицензии и их год
-        pattern = "(?P<old_lic>[А-Я]{3}\d*[А-Я]{2})(?:.)(?P<old_year>\d{4})"
+        pattern = r"(?P<old_lic>[А-Я]{3}\d*[А-Я]{2})(?:.)(?P<old_year>\d{4})"
         df_left = (
             self.rosnedra["prew_"]
             .str.extractall(pattern)
@@ -543,7 +543,7 @@ class DataTransformer:
     def create_fas_akciz(self) -> pd.DataFrame:
         dfs = []
         for i in self.data:
-            m = pd.read_html(str(i), flavor="lxml")
+            m = pd.read_html(StringIO(i), flavor="lxml")
             dfs.append(pd.concat(m, axis=1))
 
         y = datetime.datetime.now().year
@@ -622,7 +622,7 @@ class DataTransformer:
         df = df[0]
 
         df.iloc[0, 0] = dt
-        df[df.columns[1]] = df[df.columns[1]].str.extract(pat="(\d+,\d+)")
+        df[df.columns[1]] = df[df.columns[1]].str.extract(pat=r"(\d+,\d+)")
 
         self.monitoring = df
         return self

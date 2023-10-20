@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "*"
+pandas = "*"
+numpy = "*"
+exchangelib = "*"
+bs4 = "*"
+pretty-html-table = "*"
+lxml = "*"
+openpyexcel = "*"
+pysocks = "*"
+socks = "*"
+openpyxl = "*"
+
+[dev-packages]
+jupyter = "*"
+
+[requires]
+python_version = "3.12"

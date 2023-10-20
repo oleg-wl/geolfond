@@ -15,6 +15,9 @@
 
 Добавляй скрипт в cron или systemd и получай нужные для НДПИ и АНС данные прямо от истоников
 
+## New in version 3:
+* Проект переведен на pipenv
+
 ## New in version 2:
 * Средние Цабвр и Цдтвр
 * Цены аргус и ЦБ РФ
@@ -35,7 +38,7 @@
 ## Установка
 ```
 git clone https://github.com/oleg-wl/geolfond/
-pip install -r requirements.txt
+pipenv sync
 cat Parser/example.config.ini > Parser/config.ini
 ```
 <br>
