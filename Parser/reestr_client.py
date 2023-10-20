@@ -19,8 +19,9 @@ from .headers import url_smtb as _urlsmtb
 from .headers import url_fas as _urlfas
 
 from .reestr_config import config_path, create_config
-from .reestr_config import add_logger, logger
+from .reestr_config import add_logger, getlogger
 
+_LOGGER = getlogger('client')
 
 class ReestrRequest:
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
@@ -31,14 +32,13 @@ class ReestrRequest:
 
         # Получение ключей config.ini
         self.config = create_config(config_path)
-        self.logger = logger()
 
         if self.config.has_section("SSL"):
             s = "SSL"
             self.session.verify = self.config.get(s, "key")
         else:
             # requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
-            self.logger.warning("Отсутствует SSL сертификат")
+            _LOGGER.warning("Отсутствует SSL сертификат")
             self.session.verify = False
 
         if self.config.has_section("PROXY"):
@@ -127,7 +127,7 @@ class ReestrRequest:
             i["filter"] = self.filter[1]
 
         # Возващает список словарей-строк и фильтр
-        self.logger.info(f"Данные загружены успешно. Всего {len(vals)} строк")
+        _LOGGER.info(f"Данные загружены успешно. Всего {len(vals)} строк")
         return data
 
     def get_currency(
@@ -147,17 +147,17 @@ class ReestrRequest:
         if today == True:
             end_date = datetime.datetime.strftime(datetime.datetime.now(), "%d.%m.%Y")
         elif end_date == None:
-            self.logger.error("Если today=False, укажи end_date")
+            _LOGGER.error("Если today=False, укажи end_date")
             raise ValueError
 
         pat = r"\b(0[1-9]|[1-2]\d|3[0-1])\.(0[1-9]|1[0-2])\.\d{4}\b"
         if not re.fullmatch(pat, start_date) or not re.fullmatch(pat, end_date):
-            self.logger.error("Неверный формат даты. Нвдо дд.мм.гггг")
+            _LOGGER.error("Неверный формат даты. Нвдо дд.мм.гггг")
             raise ValueError(f"{start_date}{end_date}")
         else:
             url = f"https://cbr.ru/currency_base/dynamics/?UniDbQuery.Posted=True&UniDbQuery.so=1&UniDbQuery.mode=1&UniDbQuery.date_req1=&UniDbQuery.date_req2=&UniDbQuery.VAL_NM_RQ=R01235&UniDbQuery.From={start_date}&UniDbQuery.To={end_date}"
             r = self.session.get(url=url)
-            self.logger.info("Загружаю средний курс ЦБ РФ")
+            _LOGGER.info("Загружаю средний курс ЦБ РФ")
 
             raw = bs(r.text, "html.parser")
             table_tag = raw.table
@@ -187,7 +187,7 @@ class ReestrRequest:
         pat_dt = re.compile(r"(?P<date>\w* \d{4})")
         pat_price = re.compile(r"(?P<usd>\d{1,3},\d{1,2})")
 
-        self.logger.info("Загружаю котировки Argus")
+        _LOGGER.info("Загружаю котировки Argus")
         for counts in range(1, rng):
             resp = self.session.get(url=url1 + str(counts), headers=headers)
 
@@ -235,15 +235,15 @@ class ReestrRequest:
         ind = ["reg", "dtl", "dtm", "dtz"]
         d = {}
         try:
-            self.logger.info("Загружаю цены с СПБ биржи")
+            _LOGGER.info("Загружаю цены с СПБ биржи")
             for index in ind:
                 r = self.session.get(_urlsmtb.format(index=index))
                 d[index] = StringIO(r.text)
 
             return d
         except Exception as e:
-            self.logger.error("Ошибка загрузки цен с биржи")
-            self.logger.debug(e)
+            _LOGGER.error("Ошибка загрузки цен с биржи")
+            _LOGGER.debug(e)
             raise
 
     def get_oilprice_monitoring(self):
@@ -257,7 +257,7 @@ class ReestrRequest:
 
         # Основная ссылка для запроса
         try:
-            self.logger.info("Загружаю цены Юралс и Брент в мониторинге")
+            _LOGGER.info("Загружаю цены Юралс и Брент в мониторинге")
             url1 = "https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/"
             resp = self.session.get(url=url1, headers=_hpd).text
 
@@ -282,11 +282,11 @@ class ReestrRequest:
             return self
 
         except:
-            self.logger.error(f"Ошибка при парсинге сайта минэка")
-            self.logger.debug(resp)
+            _LOGGER.error(f"Ошибка при парсинге сайта минэка")
+            _LOGGER.debug(resp)
 
     def get_fas_akciz(self) -> str:
-        self.logger.info("Загружаю цены ФАС")
+        _LOGGER.info("Загружаю цены ФАС")
 
         sess = requests.Session()
         r = sess.get(url=_urlfas)

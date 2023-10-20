@@ -16,13 +16,13 @@ from exchangelib import Message, Mailbox, FileAttachment, HTMLBody
 
 from .reestr_config import create_config
 from .reestr_config import check_path
-from .reestr_config import logger as _logger
+from .reestr_config import getlogger
 from .reestr_config import EmptyFolder
 
+_logger = getlogger('sender')
 
 class EmailSender:
     def __init__(self) -> None:
-        self.logger = _logger()
 
         self.message = None
 
@@ -34,7 +34,7 @@ class EmailSender:
             self.smtp_port = self.conf.get("email", "smtp_port")
             self.smtp_to = self.conf.get("email", "smtp_to").split(",")
         else:
-            self.logger.error(
+            _logger.error(
                 "Необходимо указать данные для отправки email в config.ini"
             )
             raise NoSectionError()
@@ -43,7 +43,7 @@ class EmailSender:
         self.files = glob.glob(rf"{self.folder}/*.xlsx")
         #: проверка что в папке есть файлы для отправки
         if len(self.files) == 0:
-            self.logger.debug(f"В папке {self.files} нет файлов")
+            _logger.debug(f"В папке {self.files} нет файлов")
             raise EmptyFolder()
 
         self.user = self.smtp_user or None
@@ -82,7 +82,7 @@ class EmailSender:
             c = 0
             for file in self.files:
                 if not os.path.exists(file):
-                    self.logger.info(f"Файл {file} отсутствует")
+                    _logger.info(f"Файл {file} отсутствует")
                     continue
 
                 fn = file.rsplit(sep="/")[-1]  # имя файлаа
@@ -94,7 +94,7 @@ class EmailSender:
                 attach.add_header("Content-Disposition", "attachment", filename=fn)
                 msg.attach(attach)
 
-            self.logger.info(f"{c} добавлено во вложения")
+            _logger.info(f"{c} добавлено во вложения")
 
         if isinstance(htmlstr, str):
             msg.attach(MIMEText(htmlstr, "html"))
@@ -133,7 +133,7 @@ class EmailSender:
             server.login(user=self.smtp_user, password=self.smtp_pass)
             server.send_message(msg=self.message)
         t = self.message.get("To")
-        self.logger.info(f"Выгрузка отправлено на адрес {t}")
+        _logger.info(f"Выгрузка отправлено на адрес {t}")
 
     def owa_message(self, subj, msg, attch=None):
         if self.conf.has_section("OWA"):
@@ -141,11 +141,11 @@ class EmailSender:
             usr = rf'{self.conf.get("OWA", "owa_user")}'
             psw = rf'{self.conf.get("OWA", "owa_password")}'
         else:
-            self.logger.error(
+            _logger.error(
                 "Нет данных для подключения к Exchange серверу. Укажи в секции OWA в config.ini"
             )
             raise NoSectionError()
-        self.logger.debug(f"{srv}, {psw}, {usr}")
+        _logger.debug(f"{srv}, {psw}, {usr}")
         # Данные для подключения к серверу exchangelib
         credentials = Credentials(srv, psw)
         account = Account(usr, credentials=credentials, autodiscover=True)
@@ -167,7 +167,7 @@ class EmailSender:
             c = 0
             for file in self.files:
                 if not os.path.exists(file):
-                    self.logger.info(f"Файл {file} отсутствует")
+                    _logger.info(f"Файл {file} отсутствует")
                     continue
 
                 fn = file.rsplit(sep="/")[-1]  # имя файлаа

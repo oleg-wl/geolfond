@@ -18,7 +18,8 @@ def main():
 
         c = Parser.client()
         data = c.get_abdt_index()
-        m = Parser.transformer(data=data)
+
+        m = Parser.kdemp(data=data)
 
         s = m.kdemp()
         s = m.soup_html(s)

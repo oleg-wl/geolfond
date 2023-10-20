@@ -7,7 +7,6 @@ class DataSaver(DataTransformer):
     def __init__(
         self,
         data: [str | list | dict] = None,
-        dt=None,
         dfs: list = None,
         sheets: list = None,
     ) -> None:

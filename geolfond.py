@@ -1,4 +1,5 @@
-#!/usr/bin/env pipenv-shebang
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # --------------------------------------------------------------------------
 # Основной скрипт для загрудки информации из росгеолфонда, Ц и Р в НДПИ
@@ -93,9 +94,6 @@ def run_code() -> None:
     except Exception as e:
         logger.critical("Критическая ошибка выгрузки")
         logger.debug(e)
-        # errmsg = Parser.sender()
-        # errmsg.create_log_message()
-        # errmsg.send_message_f()
 
         raise
 

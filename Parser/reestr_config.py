@@ -21,8 +21,8 @@ logging.basicConfig(
 )
 
 
-def logger():
-    return logging.getLogger(name=__name__)
+def getlogger(name=__name__):
+    return logging.getLogger(name=name)
 
 def create_config(path: os.path = config_path) -> ConfigParser:
     """
@@ -46,13 +46,18 @@ def create_config(path: os.path = config_path) -> ConfigParser:
 def check_path() -> os.PathLike:
     c = create_config(config_path)
     p = c.get("PATHS", "data_folder", fallback=None)
-    return p if p is not None else os.path.abspath("data")
+    p if p is not None else os.path.abspath("data")
+
+    if not os.path.exists(p):
+        os.mkdirs(p)
+    return p
 
 
 #:Декоратор для логгинга ошибок в консольной версии
 def add_logger(func):
     @wraps(func)
     def wrapper(self, filter: str):
+        logger = getlogger('dec')
         try:
             result = func(self, filter)
             return result
@@ -87,6 +92,7 @@ def basic_logging(msg: str, error: str, logger_name: str = __name__):
     def add_logger(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            logger = getlogger(logger_name)
             try:
                 result = func(*args, **kwargs)
 
