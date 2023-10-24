@@ -204,16 +204,25 @@ class DataKdemp(DataTransformer):
 
         return s0 + s1 + s2
 
-    def soup_html(self, html) -> str:
+    def soup_html(self, html:str ) -> str:
+        """Метод для стилизации html таблицы
+
+        Args:
+            html (str): строка из метода kdemp()
+
+        Returns:
+            str: строка для отправки в письме
+        """
         page = bs(html, "lxml")
 
         page.tbody.find_all("td")[3]["rowspan"] = len(page.tbody.tr) - 1
         page.tbody.find_all("td")[6]["rowspan"] = len(page.tbody.tr) - 1
 
         # td с индикативом для добавления атрибута rowspan по количеству строк (дней) в таблице
+        l = len(page.tbody.find_all('tr'))
         for i in page.tbody.find("tr").find_all("td"):
             if (i.string == "62 590") or (i.string == "64 620"):
-                i["rowspan"] = len(page.tbody.tr)
+                i["rowspan"] = l
 
         # убрать пустые td для корректного rowspan
         for r in page.tbody.find_all("td"):

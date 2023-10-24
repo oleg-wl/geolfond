@@ -18,6 +18,7 @@ openpyxl = "*"
 
 [dev-packages]
 jupyter = "*"
+loguru = "*"
 
 [requires]
 python_version = "3.12"

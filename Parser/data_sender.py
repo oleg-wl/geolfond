@@ -33,6 +33,7 @@ class EmailSender:
             self.smtp_server = self.conf.get("email", "smtp_server")
             self.smtp_port = self.conf.get("email", "smtp_port")
             self.smtp_to = self.conf.get("email", "smtp_to").split(",")
+            self.smt_to_2 = self.conf.get("email", 'smtp_to_2')
         else:
             _logger.error(
                 "Необходимо указать данные для отправки email в config.ini"
@@ -55,7 +56,7 @@ class EmailSender:
         filename: str | list = None,
         htmlstr: str = None,
         image: bool = False,
-    ):
+    ) -> MIMEMultipart:
         """
         Создать MIME сообщение для отправки на почту. Если all=False, filename=None (default), отправить письмо без вложений.
 

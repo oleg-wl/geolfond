@@ -9,6 +9,7 @@
 
 import Parser
 import datetime
+from email.mime.multipart import MIMEMultipart
 
 
 def main():
@@ -31,6 +32,18 @@ def main():
             msg=s,
             attch=["СредняяЦенаАБДТ.xlsx", "СредняяЦенаАБДТ_накоп.xlsx"]
         )
+        logger.info(f'Отправлено первое сообщение в адрес {ms.smtp_to}')
+        
+        
+        ms.create_message(
+            htmlstr=s,
+            filename=["СредняяЦенаАБДТ.xlsx"])
+        ms.message.replace_header('To', ms.smt_to_2)
+        ms.message.replace_header('Subject', f"Текущие лимиты Кдемп - {n}")
+        
+        ms.send_message_f()
+        logger.info(f'Отправлено второе сообщение в адрес {ms.message["To"]}')
+        
     except Exception as e:
         logger.exception(e)
 
