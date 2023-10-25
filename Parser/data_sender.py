@@ -70,6 +70,7 @@ class EmailSender:
         msg["Subject"] = "Выгрузка данных для дашборда"
         msg["From"] = self.smtp_user
         msg["To"] = ", ".join(self.smtp_to)
+        msg["Cc"]
 
         if (all) or (filename is not None):
             if (not all) and (isinstance(filename, str)):
@@ -134,7 +135,7 @@ class EmailSender:
             server.login(user=self.smtp_user, password=self.smtp_pass)
             server.send_message(msg=self.message)
         t = self.message.get("To")
-        _logger.info(f"Выгрузка отправлено на адрес {t}")
+        _logger.info(f"Выгрузка отправлена на адрес {t}")
 
     def owa_message(self, subj, msg, attch=None):
         if self.conf.has_section("OWA"):

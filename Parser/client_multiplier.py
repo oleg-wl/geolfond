@@ -1,139 +1,25 @@
-"""
-Модуль для запроса к серверу и получения сырых данных
-"""
-import logging
 
-import requests
+import logging
 import re
 import datetime
 from io import StringIO
+import certifi
 
 from bs4 import BeautifulSoup as bs
 
-from .headers import url as _url
-from .headers import headers as _headers
-from .headers import json_data as _json_data
-from .headers import cols as _cols
-from .headers import filter as _filter
 from .headers import headers_price as _hp
 from .headers import headers_price_duty as _hpd
 from .headers import url_smtb as _urlsmtb
 from .headers import url_fas as _urlfas
 
-from .base_config import BasicConfig
+from .client_reestr import ReestrParser
 
-
-class ReestrRequest(BasicConfig):
-    """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
-
+class MultiplParser(ReestrParser):
+    
+    
     def __init__(self):
-        
-        self.logger = logging.getLogger('client')
-        
-        # Создание объекта сессии и настройка прокси если требуется
-        self.session = requests.Session()
-
-        # Проверка конфигурации
-        ssl: dict | bool = self.conf.get("SSL", False)
-        if ssl:
-            self.session.verify = ssl['key']
-        else:
-            # requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
-            self.logger.warning("Отсутствует SSL сертификат. Запрос будет направлен через http без шифрования.")
-            self.session.verify = False
-
-        proxy_c: dict | bool = self.conf.get('PROXY', False)
-        if proxy_c:
-            self.logger.debug("Выполняю подключение через прокси")
-            
-            prh = proxy_c.get("proxy_host", None)
-            prp = proxy_c.get('proxy_port', None)
-            pru = proxy_c.get('proxy_user', False)
-            prpass = proxy_c.get("proxy_pass", False)
-
-            if pru and prpass:
-                self.logger.debug('Логин прокси: %s' % (pru))
-                self.session.proxies = {
-                    "https": f"socks5h://{pru}:{prpass}@{prh}:{prp}",
-                    "http": f"socks5h://{pru}:{prpass}@{prh}:{prp}",
-                }
-            #: Только СОКС5. Для ssh -D
-            else:
-                self.session.proxies = {
-                    "https": f"socks5://{prh}:{prp}",
-                    "http": f"socks5://{prh}:{prp}",
-                }
-
-        # Переменные для запроса
-        self.url: str = _url
-        self.headers: dict = _headers
-
-        # Подстановка нужного фильтра в POST запрос
-        self.json_data: dict = _json_data
-
-        # Количество записей в запросе. Для получения всех записей надо делать тестовый запрос
-        # Полученное количество записей подставить в сдлвать для следующего запроса
-        self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = 1
-
-    def get_records(self, headers: dict, json_data: dict) -> int | dict:
-        """
-        Метод для получения количества записей. Сначала нужен dummy запрос для получения количества записей в реестре
-        """
-
-        # Создание запроса
-        try:
-            response = self.session.post(self.url, headers=headers, json=json_data)
-        except :
-            
-        response = response.json()
-        numrec = int(response["result"]["recordCount"])
-
-        return numrec, response
-
-    def get_data_from_reestr(self, filter: str = "oil") -> list:
-        """
-        Метод делает запросы к базе данных Роснедр.
-        Возращает плоский Python-словарь с данными.
-        """
-        # Переменная фильтра для запроса
-        self.filter = _filter(filter)
-
-        #: Добпавление значения фильтра в заголовок запроса
-        self.json_data["RawOlapSettings"]["measureGroup"]["filters"][0][0][
-            "selectedFilterValues"
-        ] = [self.filter[1]]
-
-        #: Добавление количества записей в заголовок запроса
-        nr = self.get_records(headers=self.headers, json_data=self.json_data)
-        self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = nr[0]
-
-        #: Получить данные запросу с nr записей
-        response = self.get_records(headers=self.headers, json_data=self.json_data)[1]
-
-        # Подготовка данных
-        response["result"]["data"]["cols"][16] = ["Дата.1"]
-        response["result"]["data"]["cols"][18] = ["Дата.2"]
-
-        cols = [
-            x.replace(k, v)
-            for x in [v[0] for v in response["result"]["data"]["cols"]]
-            for k, v in _cols.items()
-            if x == k
-        ]
-        vals = response["result"]["data"]["values"]
-
-        # Плоский список словарей-строк в которых столбец:значение
-        data: list = [
-            {key: vals[n][i] for n, key in enumerate(cols)} for i in range(len(vals[0]))
-        ]
-
-        #: добавление столбца с фильтром
-        for i in data:
-            i["filter"] = self.filter[1]
-
-        # Возващает список словарей-строк и фильтр
-        logger.info(f"Данные загружены успешно. Всего {len(vals)} строк")
-        return data
+        super().__init__()
+        self.logger = logging.getLogger('multipl')
 
     def get_currency(
         self, start_date: str, end_date: str = None, today: bool = True
@@ -152,17 +38,17 @@ class ReestrRequest(BasicConfig):
         if today == True:
             end_date = datetime.datetime.strftime(datetime.datetime.now(), "%d.%m.%Y")
         elif end_date == None:
-            logger.error("Если today=False, укажи end_date")
+            self.logger.error("Если today=False, укажи end_date")
             raise ValueError
 
         pat = r"\b(0[1-9]|[1-2]\d|3[0-1])\.(0[1-9]|1[0-2])\.\d{4}\b"
         if not re.fullmatch(pat, start_date) or not re.fullmatch(pat, end_date):
-            logger.error("Неверный формат даты. Нвдо дд.мм.гггг")
+            self.logger.error("Неверный формат даты. Используй дд.мм.гггг")
             raise ValueError(f"{start_date}{end_date}")
         else:
             url = f"https://cbr.ru/currency_base/dynamics/?UniDbQuery.Posted=True&UniDbQuery.so=1&UniDbQuery.mode=1&UniDbQuery.date_req1=&UniDbQuery.date_req2=&UniDbQuery.VAL_NM_RQ=R01235&UniDbQuery.From={start_date}&UniDbQuery.To={end_date}"
-            r = self.session.get(url=url)
-            logger.info("Загружаю средний курс ЦБ РФ")
+            r = self.session.get(url=url) 
+            self.logger.info("Загружаю средний курс ЦБ РФ")
 
             raw = bs(r.text, "html.parser")
             table_tag = raw.table
@@ -191,8 +77,7 @@ class ReestrRequest(BasicConfig):
 
         pat_dt = re.compile(r"(?P<date>\w* \d{4})")
         pat_price = re.compile(r"(?P<usd>\d{1,3},\d{1,2})")
-
-        logger.info("Загружаю котировки Argus")
+        self.logger.info("Загружаю котировки Argus")
         for counts in range(1, rng):
             resp = self.session.get(url=url1 + str(counts), headers=headers)
 
@@ -240,15 +125,15 @@ class ReestrRequest(BasicConfig):
         ind = ["reg", "dtl", "dtm", "dtz"]
         d = {}
         try:
-            logger.info("Загружаю цены с СПБ биржи")
+            self.logger.info("Загружаю цены с СПБ биржи")
             for index in ind:
                 r = self.session.get(_urlsmtb.format(index=index))
                 d[index] = StringIO(r.text)
 
             return d
         except Exception as e:
-            logger.error("Ошибка загрузки цен с биржи")
-            logger.debug(e)
+            self.logger.error("Ошибка загрузки цен с биржи")
+            self.logger.debug(e)
             raise
 
     def get_oilprice_monitoring(self):
@@ -262,7 +147,7 @@ class ReestrRequest(BasicConfig):
 
         # Основная ссылка для запроса
         try:
-            logger.info("Загружаю цены Юралс и Брент в мониторинге")
+            self.logger.info("Загружаю цены Юралс и Брент в мониторинге")
             url1 = "https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/"
             resp = self.session.get(url=url1, headers=_hpd).text
 
@@ -287,14 +172,14 @@ class ReestrRequest(BasicConfig):
             return self
 
         except:
-            logger.error(f"Ошибка при парсинге сайта минэка")
-            logger.debug(resp)
+            self.logger.error(f"Ошибка при парсинге сайта минэка")
+            self.logger.debug(resp)
+            raise
 
     def get_fas_akciz(self) -> str:
-        logger.info("Загружаю цены ФАС")
+        self.logger.info("Загружаю цены ФАС")
 
-        sess = requests.Session()
-        r = sess.get(url=_urlfas)
+        r = self.session.get(url=_urlfas, verify=certifi.where())
         d = bs(r.text, "html.parser")
 
         return [x for x in d.find_all("table")]
