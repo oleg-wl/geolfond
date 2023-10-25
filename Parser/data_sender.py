@@ -2,6 +2,7 @@ from configparser import NoSectionError
 import glob
 import os
 import base64
+import logging
 
 import smtplib, ssl
 
@@ -16,10 +17,9 @@ from exchangelib import Message, Mailbox, FileAttachment, HTMLBody
 
 from .reestr_config import create_config
 from .reestr_config import check_path
-from .reestr_config import getlogger
 from .reestr_config import EmptyFolder
 
-_logger = getlogger('sender')
+_logger = logging.getLogger('sender')
 
 class EmailSender:
     def __init__(self) -> None:

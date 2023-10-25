@@ -4,8 +4,8 @@
 Функция для создания объекта логгинга и декоратор для логгирования ошибок при загрузке данных
 """
 import os
-from functools import wraps
 import logging
+from functools import wraps
 from requests.exceptions import JSONDecodeError, Timeout, RequestException
 
 from configparser import ConfigParser
@@ -13,16 +13,6 @@ from configparser import ConfigParser
 cf_path = "config.ini"  # NOTE: можно изменить путь к конфиг файлу
 basedir = os.path.abspath(os.path.dirname((__file__)))
 config_path = os.path.join(basedir, cf_path)
-
-logging.basicConfig(
-    format="%(levelname)s - %(asctime)s: %(message)s LINE: (%(lineno)d) in %(name)s",
-    datefmt="%x %X",
-    level=logging.INFO,
-)
-
-
-def getlogger(name=__name__):
-    return logging.getLogger(name=name)
 
 def create_config(path: os.path = config_path) -> ConfigParser:
     """
@@ -57,7 +47,7 @@ def check_path() -> os.PathLike:
 def add_logger(func):
     @wraps(func)
     def wrapper(self, filter: str):
-        logger = getlogger('dec')
+        logger = logging.getLogger()
         try:
             result = func(self, filter)
             return result
@@ -92,7 +82,7 @@ def basic_logging(msg: str, error: str, logger_name: str = __name__):
     def add_logger(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            logger = getlogger(logger_name)
+            logger = logging.getLogger()
             try:
                 result = func(*args, **kwargs)
 

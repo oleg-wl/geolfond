@@ -9,11 +9,13 @@
 
 import Parser
 import datetime
+import logging
+
 from email.mime.multipart import MIMEMultipart
 
-
 def main():
-    logger = Parser._logger()
+    logger = logging.getLogger('EmailSender')
+
     try:
         n = datetime.datetime.strftime(datetime.datetime.now(), "%d.%m.%Y - %H:%M")
 

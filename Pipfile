@@ -22,3 +22,7 @@ loguru = "*"
 
 [requires]
 python_version = "3.12"
+
+[cli]
+art = "*"
+click = "*"

@@ -1,12 +1,14 @@
 """
 Модуль для запроса к серверу и получения сырых данных
 """
+import logging
 
 import requests
 import re
-from bs4 import BeautifulSoup as bs
 import datetime
 from io import StringIO
+
+from bs4 import BeautifulSoup as bs
 
 from .headers import url as _url
 from .headers import headers as _headers
@@ -18,37 +20,39 @@ from .headers import headers_price_duty as _hpd
 from .headers import url_smtb as _urlsmtb
 from .headers import url_fas as _urlfas
 
-from .reestr_config import config_path, create_config
-from .reestr_config import add_logger, getlogger
+from .base_config import BasicConfig
 
-_LOGGER = getlogger('client')
 
-class ReestrRequest:
+class ReestrRequest(BasicConfig):
     """Создание объекта данных из реестра Роснедр https://rfgf.ru/ReestrLic/"""
 
     def __init__(self):
+        
+        self.logger = logging.getLogger('client')
+        
         # Создание объекта сессии и настройка прокси если требуется
         self.session = requests.Session()
 
-        # Получение ключей config.ini
-        self.config = create_config(config_path)
-
-        if self.config.has_section("SSL"):
-            s = "SSL"
-            self.session.verify = self.config.get(s, "key")
+        # Проверка конфигурации
+        ssl: dict | bool = self.conf.get("SSL", False)
+        if ssl:
+            self.session.verify = ssl['key']
         else:
             # requests.packages.urllib3.disable_warnings()  # отключить ошибку SSL-сертификата
-            _LOGGER.warning("Отсутствует SSL сертификат")
+            self.logger.warning("Отсутствует SSL сертификат. Запрос будет направлен через http без шифрования.")
             self.session.verify = False
 
-        if self.config.has_section("PROXY"):
-            s = "PROXY"
-            prh = self.config.get(s, "proxy_host")
-            prp = self.config.get(s, "proxy_port")
-            pru = self.config.get(s, "proxy_user")
-            prpass = self.config.get(s, "proxy_pass")
+        proxy_c: dict | bool = self.conf.get('PROXY', False)
+        if proxy_c:
+            self.logger.debug("Выполняю подключение через прокси")
+            
+            prh = proxy_c.get("proxy_host", None)
+            prp = proxy_c.get('proxy_port', None)
+            pru = proxy_c.get('proxy_user', False)
+            prpass = proxy_c.get("proxy_pass", False)
 
-            if pru is not None and prpass is not None:
+            if pru and prpass:
+                self.logger.debug('Логин прокси: %s' % (pru))
                 self.session.proxies = {
                     "https": f"socks5h://{pru}:{prpass}@{prh}:{prp}",
                     "http": f"socks5h://{pru}:{prpass}@{prh}:{prp}",
@@ -77,14 +81,15 @@ class ReestrRequest:
         """
 
         # Создание запроса
-        response = self.session.post(self.url, headers=headers, json=json_data)
-
+        try:
+            response = self.session.post(self.url, headers=headers, json=json_data)
+        except :
+            
         response = response.json()
         numrec = int(response["result"]["recordCount"])
 
         return numrec, response
 
-    @add_logger
     def get_data_from_reestr(self, filter: str = "oil") -> list:
         """
         Метод делает запросы к базе данных Роснедр.
@@ -127,7 +132,7 @@ class ReestrRequest:
             i["filter"] = self.filter[1]
 
         # Возващает список словарей-строк и фильтр
-        _LOGGER.info(f"Данные загружены успешно. Всего {len(vals)} строк")
+        logger.info(f"Данные загружены успешно. Всего {len(vals)} строк")
         return data
 
     def get_currency(
@@ -147,17 +152,17 @@ class ReestrRequest:
         if today == True:
             end_date = datetime.datetime.strftime(datetime.datetime.now(), "%d.%m.%Y")
         elif end_date == None:
-            _LOGGER.error("Если today=False, укажи end_date")
+            logger.error("Если today=False, укажи end_date")
             raise ValueError
 
         pat = r"\b(0[1-9]|[1-2]\d|3[0-1])\.(0[1-9]|1[0-2])\.\d{4}\b"
         if not re.fullmatch(pat, start_date) or not re.fullmatch(pat, end_date):
-            _LOGGER.error("Неверный формат даты. Нвдо дд.мм.гггг")
+            logger.error("Неверный формат даты. Нвдо дд.мм.гггг")
             raise ValueError(f"{start_date}{end_date}")
         else:
             url = f"https://cbr.ru/currency_base/dynamics/?UniDbQuery.Posted=True&UniDbQuery.so=1&UniDbQuery.mode=1&UniDbQuery.date_req1=&UniDbQuery.date_req2=&UniDbQuery.VAL_NM_RQ=R01235&UniDbQuery.From={start_date}&UniDbQuery.To={end_date}"
             r = self.session.get(url=url)
-            _LOGGER.info("Загружаю средний курс ЦБ РФ")
+            logger.info("Загружаю средний курс ЦБ РФ")
 
             raw = bs(r.text, "html.parser")
             table_tag = raw.table
@@ -187,7 +192,7 @@ class ReestrRequest:
         pat_dt = re.compile(r"(?P<date>\w* \d{4})")
         pat_price = re.compile(r"(?P<usd>\d{1,3},\d{1,2})")
 
-        _LOGGER.info("Загружаю котировки Argus")
+        logger.info("Загружаю котировки Argus")
         for counts in range(1, rng):
             resp = self.session.get(url=url1 + str(counts), headers=headers)
 
@@ -235,15 +240,15 @@ class ReestrRequest:
         ind = ["reg", "dtl", "dtm", "dtz"]
         d = {}
         try:
-            _LOGGER.info("Загружаю цены с СПБ биржи")
+            logger.info("Загружаю цены с СПБ биржи")
             for index in ind:
                 r = self.session.get(_urlsmtb.format(index=index))
                 d[index] = StringIO(r.text)
 
             return d
         except Exception as e:
-            _LOGGER.error("Ошибка загрузки цен с биржи")
-            _LOGGER.debug(e)
+            logger.error("Ошибка загрузки цен с биржи")
+            logger.debug(e)
             raise
 
     def get_oilprice_monitoring(self):
@@ -257,7 +262,7 @@ class ReestrRequest:
 
         # Основная ссылка для запроса
         try:
-            _LOGGER.info("Загружаю цены Юралс и Брент в мониторинге")
+            logger.info("Загружаю цены Юралс и Брент в мониторинге")
             url1 = "https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/"
             resp = self.session.get(url=url1, headers=_hpd).text
 
@@ -282,11 +287,11 @@ class ReestrRequest:
             return self
 
         except:
-            _LOGGER.error(f"Ошибка при парсинге сайта минэка")
-            _LOGGER.debug(resp)
+            logger.error(f"Ошибка при парсинге сайта минэка")
+            logger.debug(resp)
 
     def get_fas_akciz(self) -> str:
-        _LOGGER.info("Загружаю цены ФАС")
+        logger.info("Загружаю цены ФАС")
 
         sess = requests.Session()
         r = sess.get(url=_urlfas)

@@ -1,7 +1,9 @@
+import logging
 import pandas as pd
 import os
 from .data_transformer import DataTransformer
 
+logger = logging.getLogger('saver')
 
 class DataSaver(DataTransformer):
     def __init__(
@@ -11,8 +13,8 @@ class DataSaver(DataTransformer):
         sheets: list = None,
     ) -> None:
         super().__init__(data)
-        self.dfs = dfs
-        self.sheets = sheets
+        self.dfs: pd.DataFrame = dfs
+        self.sheets: list = sheets
 
     def save(self, name: str = "main.xlsx"):
         file = os.path.join(self.path, name)
@@ -22,4 +24,4 @@ class DataSaver(DataTransformer):
             for df, sheet in zip(self.dfs, self.sheets):
                 c += 1
                 df.to_excel(writer, sheet_name=sheet, freeze_panes=(1, 0), na_rep="")
-        self.logger.info(f"Сохранено {c} листов в {file}")
+        logger.info(f"Сохранено {c} листов в {file}")

@@ -1,12 +1,13 @@
 import os
 import pandas as pd
+import logging
+
 from bs4 import BeautifulSoup as bs
 from pretty_html_table import build_table
 
 from .data_transformer import DataTransformer
-from .reestr_config import getlogger
 
-_logger = getlogger("Kdemp")
+_logger = logging.getLogger("Kdemp")
 
 
 class DataKdemp(DataTransformer):

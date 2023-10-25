@@ -2,13 +2,14 @@ import re
 import os
 from io import StringIO
 import datetime
+import logging
 
 import pandas as pd
 import numpy as np
 
-from .reestr_config import getlogger, check_path
+from .reestr_config import check_path
 
-_logger = getlogger('transformer')
+logger = logging.getLogger('transformer')
 
 class DataTransformer:
     y = datetime.datetime.now().year
@@ -115,10 +116,10 @@ class DataTransformer:
         #: Оптимизация для фильтров не oil
 
         # if df['filter'].str.contains('Углеводородное сырье').any():
-        #    _logger.debug(f'Очистка данных о недропользователях')
+        #    logger.debug(f'Очистка данных о недропользователях')
         #    change_inn(df['owner'].unique().tolist())
         #    change_owners(df['INN'].unique().tolist())
-        #    _logger.debug(f'Очистка данных завершена')
+        #    logger.debug(f'Очистка данных завершена')
 
         df["owner"] = df["owner"].fillna(value=df["owner_full"], axis=0)
 
@@ -228,10 +229,10 @@ class DataTransformer:
                 df["owner"].count() == df["owner_full"].count()
             ), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
 
-            _logger.info(f"Тесты ОК, всего строк: {len(df.index)}")
+            logger.info(f"Тесты ОК, всего строк: {len(df.index)}")
 
         except AssertionError as err:
-            _logger.warning(err)
+            logger.warning(err)
         finally:
             # Датафрейм для сохранения или передачи методу create_matrix
             self.rosnedra = df[list(types.keys())].reset_index()
@@ -243,7 +244,7 @@ class DataTransformer:
         Метод создает матрицу для меппенига данныз из ГБЗ и из Росгеолфонда
         Сохраняет в эсксель таблицу _matrix.xlsx
         """
-        _logger.info("Создаю матрицу")
+        logger.info("Создаю матрицу")
 
         if self.rosnedra is None:
             raise ValueError("Нет данных для матрицы.")
