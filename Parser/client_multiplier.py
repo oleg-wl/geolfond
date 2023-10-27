@@ -1,4 +1,3 @@
-
 import logging
 import re
 import datetime
@@ -14,12 +13,12 @@ from .headers import url_fas as _urlfas
 
 from .client_reestr import ReestrParser
 
+
 class MultiplParser(ReestrParser):
-    
-    
     def __init__(self):
         super().__init__()
-        self.logger = logging.getLogger('multipl')
+        self.logger = logging.getLogger("multipl")
+        self.now = datetime.datetime.now()
 
     def get_currency(
         self, start_date: str, end_date: str = None, today: bool = True
@@ -47,7 +46,7 @@ class MultiplParser(ReestrParser):
             raise ValueError(f"{start_date}{end_date}")
         else:
             url = f"https://cbr.ru/currency_base/dynamics/?UniDbQuery.Posted=True&UniDbQuery.so=1&UniDbQuery.mode=1&UniDbQuery.date_req1=&UniDbQuery.date_req2=&UniDbQuery.VAL_NM_RQ=R01235&UniDbQuery.From={start_date}&UniDbQuery.To={end_date}"
-            r = self.session.get(url=url) 
+            r = self.session.get(url=url)
             self.logger.info("Загружаю средний курс ЦБ РФ")
 
             raw = bs(r.text, "html.parser")
@@ -148,33 +147,52 @@ class MultiplParser(ReestrParser):
         # Основная ссылка для запроса
         try:
             self.logger.info("Загружаю цены Юралс и Брент в мониторинге")
+            
+            #Получаем ссылки на последние публикации по нефти
             url1 = "https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/"
             resp = self.session.get(url=url1, headers=_hpd).text
-
-            # Найти последнюю ссылку на публикацию и ее дату
+            
             page = bs(resp, "html.parser")
-            link = page.find(
+            links: list = page.find_all(
                 "a", attrs={"title": re.compile("вывозных таможенных пошлин на нефть")}
             )
-            # Найти дату публикации
-            patt = r"(\d{2} \w+ \d{4})"
-            date = re.findall(patt, str(link.span))
 
-            # Извлечь последнюю часть ссылки для добавления к ссылке и перехода на страницу с данными
-            url2 = link["href"].rsplit(sep="/")[-1]
-            resp2 = self.session.get(url=url1 + url2, headers=_hpd).text
-            page2 = bs(resp2, "html.parser")
-            result = page2.find("table")
+            #Переходим по каждой ссылке
+            patt = r"(\d{2} \w+ \d{4})" # паттерн даты публикации       
 
-            # html строка с таблицей для добавления
-            self.data = str(result)
-            self.dt = "".join(date)  # апак листа
-            return self
+            for link in links:
+                date = re.search(patt, link['title']).group()
+                for old, new in [
+                ("января", "01"),
+                ("февраля", "02"),
+                ("марта", "03"),
+                ("апреля", "04"),
+                ("мая", "05"),
+                ("июня", "06"),
+                ("июля", "07"),
+                ("августа", "08"),
+                ("сентября", "09"),
+                ("октября", "10"),
+                ("ноября", "11"),
+                ("декабря", "12")]:
+                    if old in date:
+                        d = datetime.datetime.strptime(date.replace(old, new), "%d %m %Y")
+                        if d.month == self.now.month:
+                            self.logger.debug('%s'%d.month)
+                            self.logger.debug('%s'%self.now.month)
+                            self.logger.debug('match')
 
+                            url2 = link.get("href").rsplit(sep="/")[-1]
+            
+                            resp = self.session.get(url=url1 + url2, headers=_hpd).text
+                            page = bs(resp, "html.parser")
+
+                            self.table = page.find("table").prettify()
+                            break
         except:
             self.logger.error(f"Ошибка при парсинге сайта минэка")
-            self.logger.debug(resp)
             raise
+        return self
 
     def get_fas_akciz(self) -> str:
         self.logger.info("Загружаю цены ФАС")

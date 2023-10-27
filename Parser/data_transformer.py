@@ -7,21 +7,17 @@ import logging
 import pandas as pd
 import numpy as np
 
-from .reestr_config import check_path
+from .base_config import BasicConfig
 
-logger = logging.getLogger('transformer')
 
-class DataTransformer:
+class DataTransformer(BasicConfig):
     y = datetime.datetime.now().year
     m = datetime.datetime.now().month
 
     def __init__(self, data: [str | list | dict] = None) -> None:
-        self.path = check_path()
-
-        # Сделать переменные для обработки при инициализации класса
-        # и return self
-        self.data = data  # передача данных в класс для обработки
-        self.rosnedra = None  # переменная для хранения результата обработки
+        
+        self.logger = logging.getLogger('transformer')
+        self.data = data
         self.abdt = None  # переменная для хранения абдт индекса
 
     def create_df(self) -> pd.DataFrame:
@@ -229,10 +225,10 @@ class DataTransformer:
                 df["owner"].count() == df["owner_full"].count()
             ), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
 
-            logger.info("Тесы ОК, всего строк: %s" % (len(df.index)))
+            self.logger.info("Тесы ОК, всего строк: %s" % (len(df.index)))
 
         except AssertionError as err:
-            logger.warning(err)
+            self.logger.warning(err)
         finally:
             # Датафрейм для сохранения или передачи методу create_matrix
             self.rosnedra = df[list(types.keys())].reset_index()
@@ -244,7 +240,7 @@ class DataTransformer:
         Метод создает матрицу для меппенига данныз из ГБЗ и из Росгеолфонда
         Сохраняет в эсксель таблицу _matrix.xlsx
         """
-        logger.info("Создаю матрицу")
+        self.logger.info("Создаю матрицу")
 
         if self.rosnedra is None:
             raise ValueError("Нет данных для матрицы.")
@@ -409,7 +405,7 @@ class DataTransformer:
         self.fas = d
         return self
 
-    def create_oil_monitoring(self, dt: str = None) -> pd.DataFrame:
+    def create_oil_monitoring(self) -> pd.DataFrame:
         """
         Метод возвращает датафрейм с последними ценами Юралс и НСД в период мониторинга, $
 
@@ -417,11 +413,8 @@ class DataTransformer:
         :return pd.DataFrame: датафрейм с ценами для расчета ЭП (P)
         """
 
-        df = pd.read_html(StringIO(self.data))
-        df = df[0]
-
-        df.iloc[0, 0] = dt
-        df[df.columns[1]] = df[df.columns[1]].str.extract(pat=r"(\d+,\d+)")
+        df = pd.read_html(StringIO(self.data), skiprows=1)[0]
+        df[1] = df[1].str.extract(pat=r"(\d+,\d+)")
 
         self.monitoring = df
         return self

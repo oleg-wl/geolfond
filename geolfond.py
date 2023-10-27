@@ -66,8 +66,8 @@ def main() -> None:
 
     #: Юралс в периоде мониторинга
     mon = parser.get_oilprice_monitoring()
-    monitoring = Parser.transformer(mon.data)
-    monitoring.create_oil_monitoring(dt=mon.dt)
+    monitoring = Parser.transformer(data=mon.table)
+    monitoring.create_oil_monitoring()
     dfs.append(monitoring.monitoring)
     sheets.append("monitoring")
 
@@ -82,7 +82,7 @@ def main() -> None:
     # Если в config.ini несколько адресатов, отправлять только на последний
     ms.smtp_to = [ms.smtp_to[-1]]
 
-    ms.create_message(
+    ms.create_message(subj='Данные для дашборда',
         all=False, filename=["main.xlsx"], htmlstr="Выгрузка данных для дашборда"
     )
     ms.send_message_f()

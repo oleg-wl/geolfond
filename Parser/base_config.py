@@ -32,9 +32,6 @@ class BasicConfig:
         #скопировать пример конфига в конфиг.ини
         if not os.path.exists(cls.cnf_path):
             shutil.copy(os.path.abspath('example.config.ini'), cls.cnf_path)
-    
-    def __repr__(self) -> str:
-        if os.path.exists(self.cnf_path):
-            return self.conf
+
             
         
