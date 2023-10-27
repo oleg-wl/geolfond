@@ -55,6 +55,7 @@ class ReestrParser(BasicConfig):
                 }
             #: Только СОКС5. Для ssh -D
             else:
+                self.logger.debug('Подключние через локальный прокси-сервер')
                 self.session.proxies = {
                     "https": f"socks5://{prh}:{prp}",
                     "http": f"socks5://{prh}:{prp}",
@@ -80,10 +81,11 @@ class ReestrParser(BasicConfig):
         try:
             self.logger.info('Загружаю данные из реестра')
             response = self.session.post(self.url, headers=headers, json=json_data)
+            self.logger.debug('Попытка подключения %s', response)
             response = response.json()
             
             numrec = int(response["result"]["recordCount"])
-            if numrec > 1: self.logger.info('Данные успешно загружены. Всего строк: %s', numrec)
+            if numrec > 1: self.logger.info('Данные успешно загружены. Всего строк: %d', numrec)
             
             return numrec, response
         
@@ -100,7 +102,7 @@ class ReestrParser(BasicConfig):
             self.logger.debug('Строк в json: %s' % (len(response)), exc_info=True)
             raise
         
-        except Exception as e:
+        except Exception:
             self.logger.debug('Ошибка при загрузке данных', exc_info=True)
             self.logger.error('Ошибка при загрузке данных', exc_info=False)
             raise
@@ -112,6 +114,10 @@ class ReestrParser(BasicConfig):
         """
         # Переменная фильтра для запроса
         self.filter: str = _filter(filter)
+        
+        self.logger.debug('arg %s :: фильтр %s' % (filter, self.filter))
+        self.logger.info('Применен фильтр: %s' % (filter))
+        
 
         #: Добпавление значения фильтра в заголовок запроса
         self.json_data["RawOlapSettings"]["measureGroup"]["filters"][0][0][
@@ -147,5 +153,5 @@ class ReestrParser(BasicConfig):
             i["filter"] = self.filter[1]
 
         # Возващает список словарей-строк и фильтр
-        self.logger.debug(f"Json распарсен - Всего {len(data)} строк")
+        self.logger.debug("Json распарсен - Всего %d строк", len(data))
         return data

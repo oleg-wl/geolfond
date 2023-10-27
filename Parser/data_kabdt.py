@@ -7,12 +7,12 @@ from pretty_html_table import build_table
 
 from .data_transformer import DataTransformer
 
-_logger = logging.getLogger("Kdemp")
 
 
 class DataKdemp(DataTransformer):
     def __init__(self, data: [str | list | dict] = None) -> None:
         super().__init__(data)
+        self.logger = logging.getLogger("Kdemp")
 
     def create_abdt_index(self):
         """
@@ -23,7 +23,7 @@ class DataKdemp(DataTransformer):
         """
 
         if (self.data is None) or (not isinstance(self.data, dict)):
-            _logger.error(
+            self.logger.error(
                 "Нет данных для обработки. Передай результат client.get_abdt_index"
             )
             raise ValueError()
@@ -97,7 +97,7 @@ class DataKdemp(DataTransformer):
 
         m["date"] = m["date"].dt.strftime("%d-%m-%Y")
 
-        _logger.info("Сохранил среднюю")
+        self.logger.info("Сохранил среднюю")
 
         #:анкоммент для сохранения в эксель
         m.to_excel(os.path.join(self.path, "СредняяЦенаАБДТ_накоп.xlsx"))

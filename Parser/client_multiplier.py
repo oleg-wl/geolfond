@@ -182,4 +182,4 @@ class MultiplParser(ReestrParser):
         r = self.session.get(url=_urlfas, verify=certifi.where())
         d = bs(r.text, "html.parser")
 
-        return [x for x in d.find_all("table")]
+        return [x.prettify() for x in d.find_all("table")]

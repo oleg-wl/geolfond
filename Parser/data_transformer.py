@@ -229,7 +229,7 @@ class DataTransformer:
                 df["owner"].count() == df["owner_full"].count()
             ), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
 
-            logger.info(f"Тесты ОК, всего строк: {len(df.index)}")
+            logger.info("Тесы ОК, всего строк: %s" % (len(df.index)))
 
         except AssertionError as err:
             logger.warning(err)
@@ -417,7 +417,7 @@ class DataTransformer:
         :return pd.DataFrame: датафрейм с ценами для расчета ЭП (P)
         """
 
-        df = pd.read_html(self.data)
+        df = pd.read_html(StringIO(self.data))
         df = df[0]
 
         df.iloc[0, 0] = dt

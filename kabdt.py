@@ -19,7 +19,7 @@ def main():
     try:
         n = datetime.datetime.strftime(datetime.datetime.now(), "%d.%m.%Y - %H:%M")
 
-        c = Parser.client()
+        c = Parser.multipl()
         data = c.get_abdt_index()
 
         m = Parser.kdemp(data=data)
@@ -38,10 +38,10 @@ def main():
         
         
         ms.create_message(
+            subj= f"Текущие лимиты Кдемп - {n}",
             htmlstr=s,
             filename=["СредняяЦенаАБДТ.xlsx"])
         ms.message.replace_header('To', ms.smt_to_2)
-        ms.message.replace_header('Subject', f"Текущие лимиты Кдемп - {n}")
         
         ms.send_message_f()
         logger.info(f'Отправлено второе сообщение в адрес {ms.message["To"]}')
