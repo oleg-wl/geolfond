@@ -3,6 +3,7 @@
 """
 import logging
 import requests
+from datetime import datetime
 
 from requests.exceptions import Timeout, RequestException
 from requests.exceptions import JSONDecodeError
@@ -10,7 +11,6 @@ from requests.exceptions import JSONDecodeError
 from .headers import url as _url
 from .headers import headers as _headers
 from .headers import json_data as _json_data
-from .headers import cols as _cols
 from .headers import filter as _filter
 
 from .base_config import BasicConfig
@@ -60,6 +60,8 @@ class ReestrParser(BasicConfig):
                     "https": f"socks5://{prh}:{prp}",
                     "http": f"socks5://{prh}:{prp}",
                 }
+        else:
+            self.logger.debug("Подключение без прокси сервера")
 
         # Переменные для запроса
         self.url: str = _url
@@ -94,7 +96,8 @@ class ReestrParser(BasicConfig):
             raise
         
         except RequestException as re:
-            self.logger.error('Ошибка при попытке загрузить данные с сайта - %s', re, exc_info=False)
+            self.logger.error('Ошибка подключения данные с сайта', exc_info=False)
+            self.logger.debug(re)
             raise
         
         except JSONDecodeError as je:
@@ -102,9 +105,9 @@ class ReestrParser(BasicConfig):
             self.logger.debug('Строк в json: %s' % (len(response)), exc_info=True)
             raise
         
-        except Exception:
-            self.logger.debug('Ошибка при загрузке данных', exc_info=True)
+        except Exception as e:
             self.logger.error('Ошибка при загрузке данных', exc_info=False)
+            self.logger.debug(e)
             raise
             
     def get_data_from_reestr(self, filter: str = "oil") -> list:
@@ -129,28 +132,25 @@ class ReestrParser(BasicConfig):
         self.json_data["RawOlapSettings"]["lazyLoadOptions"]["limit"] = nr[0]
 
         #: Получить данные запросу с nr записей
+        start = datetime.now()
         response = self.get_records(headers=self.headers, json_data=self.json_data)[1]
-
+        end = datetime.now()
+        self.logger.debug("Данные загружены: {}".format(end - start))
         # Подготовка данных
         response["result"]["data"]["cols"][16] = ["Дата.1"]
         response["result"]["data"]["cols"][18] = ["Дата.2"]
 
-        cols = [
-            x.replace(k, v)
-            for x in [v[0] for v in response["result"]["data"]["cols"]]
-            for k, v in _cols.items()
-            if x == k
-        ]
-        vals = response["result"]["data"]["values"]
+        #Значения колонок
+        cols:list = [c[0] for c in response["result"]["data"]["cols"]]
+        cols.append('filter')
 
-        # Плоский список словарей-строк в которых столбец:значение
-        data: list = [
-            {key: vals[n][i] for n, key in enumerate(cols)} for i in range(len(vals[0]))
-        ]
+        #Значения столбцов
+        vals:list = response["result"]["data"]["values"]
+        vals.append([self.filter[1]] * len(vals[0]))
+        
 
-        #: добавление столбца с фильтром
-        for i in data:
-            i["filter"] = self.filter[1]
+        self.logger.debug('cols: %d \n vals: %d'%(len(cols), len(vals)))
+        data = dict(zip(cols, vals))
 
         # Возващает список словарей-строк и фильтр
         self.logger.debug("Json распарсен - Всего %d строк", len(data))

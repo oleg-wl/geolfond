@@ -7,6 +7,7 @@ import logging
 import pandas as pd
 import numpy as np
 
+from .headers import cols as _cols
 from .base_config import BasicConfig
 
 
@@ -28,9 +29,9 @@ class DataTransformer(BasicConfig):
         :return pd.DataFrame: очищенные данные
         """
         # Input check
-        if (self.data is None) or (not isinstance(self.data, list)):
+        if (self.data is None) or (not isinstance(self.data, dict)):
             raise ValueError(
-                "Отсутствуют даннанные для обработки. Нужен список, который возвращает client().get_data_from_reestr "
+                "Отсутствуют даннанные для обработки. Нужен словарь, который возвращает client().get_data_from_reestr "
             )
 
         types = {
@@ -56,7 +57,8 @@ class DataTransformer(BasicConfig):
             "filter": "str",
         }
 
-        df = pd.DataFrame(self.data).set_index("num")
+        df = pd.DataFrame(self.data)
+        df.rename(columns=_cols, inplace=True)
 
         # выделение столбца ГОД
         df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d", yearfirst=True)
@@ -88,34 +90,6 @@ class DataTransformer(BasicConfig):
 
         #: Очистка для столбца с видом полезного ископаемого
         df["filter"] = df["filter"].str.slice(start=4)
-
-        #: Функция для очистки данных о недропользователях
-        #: Функция изменяет ИНН на последний для дублкатов, когда несколько ИНН у одного наименования недропользовтаеля
-        #: Как праило это ликвидированные или реорганизованные недропользователи
-        #! Временно отключено для проверки совместимости данных
-        #! и ускорения процесса загрузки
-        # def change_inn(owners):
-        #    for owner in owners:
-        #        try:
-        #            query = df.loc[(df['owner'] == owner),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
-        #            df.loc[df['owner'] == owner, 'INN'] = query.iloc[0,0]
-        #        except IndexError:
-        #            continue
-        # def change_owners(inns):
-        #    for inn in inns:
-        #        try:
-        #            query = df.loc[(df['INN'] == inn),  ['INN','owner','Year']].sort_values(by='Year', ascending=False)
-        #            df.loc[df['INN'] == inn, 'owner'] = query.iloc[0,1]
-        #        except IndexError:
-        #            continue
-
-        #: Оптимизация для фильтров не oil
-
-        # if df['filter'].str.contains('Углеводородное сырье').any():
-        #    logger.debug(f'Очистка данных о недропользователях')
-        #    change_inn(df['owner'].unique().tolist())
-        #    change_owners(df['INN'].unique().tolist())
-        #    logger.debug(f'Очистка данных завершена')
 
         df["owner"] = df["owner"].fillna(value=df["owner_full"], axis=0)
 
@@ -225,7 +199,7 @@ class DataTransformer(BasicConfig):
                 df["owner"].count() == df["owner_full"].count()
             ), f"Тест не пройден, owner: {df['owner'].count()}, owner full: {df['owner_full'].count()}"
 
-            self.logger.info("Тесы ОК, всего строк: %s" % (len(df.index)))
+            self.logger.info("Тесты ОК, всего строк: %s" % (len(df.index)))
 
         except AssertionError as err:
             self.logger.warning(err)
