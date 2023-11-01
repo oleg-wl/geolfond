@@ -17,7 +17,7 @@ import logging
 logging.basicConfig(
     format="%(levelname)s - %(asctime)s: %(message)s LINE: (%(lineno)d) in %(name)s",
     datefmt="%x %X",
-    level=logging.DEBUG,
+    level=logging.INFO,
 )
 logging.getLogger("urllib3").setLevel(level=logging.INFO)
 logging.getLogger("exchangelib").setLevel(level=logging.INFO)
