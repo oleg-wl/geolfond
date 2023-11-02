@@ -198,6 +198,7 @@ class MultiplParser(ReestrParser):
         self.logger.info("Загружаю цены ФАС")
 
         r = self.session.get(url=_urlfas, verify=certifi.where())
+        #r = self.session.get(url=_urlfas, verify=False)
         d = bs(r.text, "html.parser")
 
         return [x.prettify() for x in d.find_all("table")]

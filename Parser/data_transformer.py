@@ -305,19 +305,33 @@ class DataTransformer(BasicConfig):
 
         #: группировка и Join
         m = df_curr.set_index("Dates").groupby(pd.Grouper(freq="MS")).mean().round(4)
-        self.prices = df_pr.merge(m, how="inner", left_index=True, right_index=True)
+        self.prices = df_pr.merge(m, how="right", left_index=True, right_index=True)
 
         return self
 
-    def create_fas_akciz(self) -> pd.DataFrame:
+    def create_fas_akciz(self) -> None:
+        """Метод для создания таблицы из данных сайта ФАС. Сохраняет в таблицу данные с 2023 года и позднее
+
+        Returns:
+            self.fas: инстанс для добавления в лист и сохранения Parser.saver.save()
+            _type_: self
+        """
+        
         dfs = []
-        for i in self.data:
-            m = pd.read_html(StringIO(i), flavor="lxml")
-            dfs.append(pd.concat(m, axis=1))
-
-        y = datetime.datetime.now().year
-
-        def add_vr():
+        for table in self.data[4:]:
+            
+            t_lst: list[pd.DataFrame] = pd.read_html(StringIO(table), flavor="lxml")
+            t = t_lst[0].transpose()
+            
+            #фикс дубликата в названии столбца
+            t.iloc[0,1] = "Показатели1"
+            
+            t.columns = t.iloc[0]
+            t = t.drop(0)
+            dfs.append(t)
+        d = pd.concat(dfs)
+        
+        def add_vr(y):
             # [Цаб_вр, Цдт_вр] по годам
             # Указано к в НК в текущей редакции. Править тут руками в случае изменений в НК
             match y:
@@ -331,7 +345,7 @@ class DataTransformer(BasicConfig):
                     ab, dt = 62300, 58950
             return ab, dt
 
-        def add_C():
+        def add_C(y):
             # Функция для добавления в выгрузку условных значений Цабвр_С и Цдтвр_С
             match y:
                 case 2023:
@@ -348,7 +362,7 @@ class DataTransformer(BasicConfig):
                     dt = 70355
             return ab, dt
 
-        def add_2021():
+        def add_2021(y):
             # Функция для добавления в выгрузку условных значений Цабвр_2021 и Цдтвр_2021
             match y:
                 case 2023:
@@ -365,16 +379,15 @@ class DataTransformer(BasicConfig):
                     dt = 64800
             return ab, dt
 
-        d = dfs[-1].T
-        d.columns = d.iloc[0]
-        d = d.drop(0)
-
-        d["Цабвр"], d["Цдтвр"] = add_vr()
-        d["Цабвр_С"], d["Цдтвр_С"] = add_C()
-        d["Цабвр_2021"], d["Цдтвр_2021"] = add_2021()
+        #Последняя таблица с сайта 
+        d['Показатели'] = d['Показатели'].ffill().astype(int)
+        
+        d[["Цабвр", "Цдтвр"]] = [*d['Показатели'].apply(add_vr)]
+        d[["Цабвр_С" , "Цдтвр_С"]] =  [*d['Показатели'].apply(add_C)]
+        d[["Цабвр_2021", "Цдтвр_2021"]] = [*d['Показатели'].apply(add_2021)]
 
         # Кинв от года
-        d["Кнв"] = 1.3 if y in range(2023, 2027, 1) else 1
+        d["Кнв"] = 1.3 if self.y in range(2023, 2027, 1) else 1
 
         self.fas = d
         return self

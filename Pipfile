@@ -15,6 +15,7 @@ openpyexcel = "*"
 pysocks = "*"
 socks = "*"
 openpyxl = "*"
+html5lib = "*"
 
 [dev-packages]
 jupyter = "*"
