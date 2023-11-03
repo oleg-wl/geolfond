@@ -21,8 +21,9 @@ def main():
 
         c = Parser.multipl()
         data = c.get_abdt_index()
+        curr = c.get_currency(start_date='01.01.2023', today = True)
 
-        m = Parser.kdemp(data=data)
+        m = Parser.kdemp(data=data, curr=curr)
 
         s = m.kdemp()
         s = m.soup_html(s)

@@ -58,7 +58,7 @@ class DataTransformer(BasicConfig):
         }
 
         df = pd.DataFrame(self.data)
-        df.rename(columns=_cols, inplace=True)
+        df = df.rename(columns=_cols).set_index('num', drop=True)
 
         # выделение столбца ГОД
         df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d", yearfirst=True)
@@ -280,21 +280,9 @@ class DataTransformer(BasicConfig):
             ) as writer:
                 lookup_table.to_excel(writer, sheet_name="lookup_table")
 
-    def create_prices(self, curr: dict, pr: dict) -> None:
-        """
-        Метод для обработки данных о ценах. Возвращает среднемесячную котировку Аргус и среднемесячный курс $ЦБ
-        Сохраняет в prices.xlsx
-
-        :param dict curr: Словарь с выгрузкой Аргуса client.get_oil_price
-        :param dict pr: Словарь с курсом ЦБ client.get_currency
-        """
-
-        df_pr = pd.DataFrame(pr).set_index("Dates")
+    def create_curr(self, curr: dict) -> pd.DataFrame:
+        
         df_curr = pd.DataFrame(curr)
-
-        #: Обработка датафрейма с котировками Argus
-        df_pr["Price"] = pd.to_numeric(df_pr["Price"].str.replace(",", "."))
-
         #: Обработка датафрейма с курсом ЦБ
         df_curr["Dates"] = pd.to_datetime(
             df_curr["Dates"], format="%d.%m.%Y", dayfirst=True
@@ -302,6 +290,23 @@ class DataTransformer(BasicConfig):
         df_curr["Rate"] = df_curr["Rate"].str.replace(",", ".")
         df_curr["Rate"] = df_curr["Rate"].str.replace(" ", "")
         df_curr["Rate"] = pd.to_numeric(df_curr["Rate"])
+
+        return df_curr
+    
+    def create_prices(self, curr: dict, pr: dict) -> None:
+        """
+        Метод для обработки данных о ценах. Возвращает среднемесячную котировку Аргус и среднемесячный курс $ЦБ
+        Сохраняет в prices.xlsx
+
+        :param dict pr: Словарь с выгрузкой Аргуса client.get_oil_price
+        :param dict curr: Словарь с курсом ЦБ client.get_currency
+        """
+
+        df_pr = pd.DataFrame(pr).set_index("Dates")
+        df_curr = self.create_curr(curr=curr)
+
+        #: Обработка датафрейма с котировками Argus
+        df_pr["Price"] = pd.to_numeric(df_pr["Price"].str.replace(",", "."))
 
         #: группировка и Join
         m = df_curr.set_index("Dates").groupby(pd.Grouper(freq="MS")).mean().round(4)
@@ -399,9 +404,12 @@ class DataTransformer(BasicConfig):
         :param str dt: дата публикации цен (инстанс dt после вызова метода класса client.get_oilprice_monitoring), defaults to None
         :return pd.DataFrame: датафрейм с ценами для расчета ЭП (P)
         """
-
-        df = pd.read_html(StringIO(self.data), skiprows=1)[0]
-        df[1] = df[1].str.extract(pat=r"(\d+,\d+)")
-
-        self.monitoring = df
+        dfs = []
+        for dt, table in self.data.items():
+             
+            df = pd.read_html(StringIO(table), skiprows=1)[0]
+            df[1] = dt
+            dfs.append(df)
+        
+        self.monitoring = pd.concat(dfs)
         return self

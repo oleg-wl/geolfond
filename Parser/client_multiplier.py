@@ -34,7 +34,7 @@ class MultiplParser(ReestrParser):
         Returns:
             dict: python словарь. Ключ Date - значение торгового дня; ключ Rate - значение средней ставки ЦБ РФ в этот день
         """
-        if today == True:
+        if today:
             end_date = datetime.datetime.strftime(datetime.datetime.now(), "%d.%m.%Y")
         elif end_date == None:
             self.logger.error("Если today=False, укажи end_date")
@@ -160,6 +160,7 @@ class MultiplParser(ReestrParser):
             #Переходим по каждой ссылке
             patt = r"(\d{2} \w+ \d{4})" # паттерн даты публикации       
 
+            self.data: dict = {}
             for link in links:
                 date = re.search(patt, link['title']).group()
                 for old, new in [
@@ -177,18 +178,14 @@ class MultiplParser(ReestrParser):
                 ("декабря", "12")]:
                     if old in date:
                         d = datetime.datetime.strptime(date.replace(old, new), "%d %m %Y")
-                        if d.month == self.now.month:
-                            self.logger.debug('%s'%d.month)
-                            self.logger.debug('%s'%self.now.month)
-                            self.logger.debug('match')
-
-                            url2 = link.get("href").rsplit(sep="/")[-1]
+                        self.logger.debug('запрос к дате эп %s' %d)
+                        url2 = link.get("href").rsplit(sep="/")[-1]
             
-                            resp = self.session.get(url=url1 + url2, headers=_hpd).text
-                            page = bs(resp, "html.parser")
+                        resp = self.session.get(url=url1 + url2, headers=_hpd).text
+                        page = bs(resp, "html.parser")
 
-                            self.table = page.find("table").prettify()
-                            break
+                        table: str = page.find("table").prettify()
+                        self.data[d] = table
         except:
             self.logger.error(f"Ошибка при парсинге сайта минэка")
             raise

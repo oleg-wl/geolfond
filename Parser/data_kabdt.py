@@ -8,11 +8,11 @@ from pretty_html_table import build_table
 from .data_transformer import DataTransformer
 
 
-
 class DataKdemp(DataTransformer):
-    def __init__(self, data: [str | list | dict] = None) -> None:
+    def __init__(self, data: [str | list | dict] = None, curr: dict = None) -> None:
         super().__init__(data)
         self.logger = logging.getLogger("Kdemp")
+        self.curr = curr
 
     def create_abdt_index(self):
         """
@@ -99,8 +99,14 @@ class DataKdemp(DataTransformer):
 
         self.logger.info("Сохранил среднюю")
 
+        if isinstance(self.curr, dict):
+            dfcurr = self.create_curr(self.curr)
+
         #:анкоммент для сохранения в эксель
-        m.to_excel(os.path.join(self.path, "СредняяЦенаАБДТ_накоп.xlsx"))
+        with pd.ExcelWriter(os.path.join(self.path, "СредняяЦенаАБДТ_накоп.xlsx"), mode='w') as ex:
+            m.to_excel(ex, sheet_name="Sheet1")
+            dfcurr.to_excel(ex, sheet_name="Sheet2")
+
         self.abdt = m
         return self
 
@@ -205,7 +211,7 @@ class DataKdemp(DataTransformer):
 
         return s0 + s1 + s2
 
-    def soup_html(self, html:str ) -> str:
+    def soup_html(self, html: str) -> str:
         """Метод для стилизации html таблицы
 
         Args:
@@ -220,7 +226,7 @@ class DataKdemp(DataTransformer):
         page.tbody.find_all("td")[6]["rowspan"] = len(page.tbody.tr) - 1
 
         # td с индикативом для добавления атрибута rowspan по количеству строк (дней) в таблице
-        l = len(page.tbody.find_all('tr'))
+        l = len(page.tbody.find_all("tr"))
         for i in page.tbody.find("tr").find_all("td"):
             if (i.string == "62 590") or (i.string == "64 620"):
                 i["rowspan"] = l

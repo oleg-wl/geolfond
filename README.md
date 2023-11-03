@@ -39,7 +39,9 @@
 ```
 git clone https://github.com/oleg-wl/geolfond/
 pipenv sync
-cat Parser/example.config.ini > Parser/config.ini
+
+from Parser import reestr
+reesrt.basic_config()
 ```
 <br>
 

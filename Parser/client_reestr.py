@@ -149,7 +149,7 @@ class ReestrParser(BasicConfig):
         vals.append([self.filter[1]] * len(vals[0]))
         
 
-        self.logger.debug('cols: %d \n vals: %d'%(len(cols), len(vals)))
+        self.logger.debug('cols: %d \n vals: %d'%(len(cols), len(vals[0])))
         data = dict(zip(cols, vals))
 
         # Возващает список словарей-строк и фильтр
