@@ -408,7 +408,7 @@ class DataTransformer(BasicConfig):
         for dt, table in self.data.items():
              
             df = pd.read_html(StringIO(table), skiprows=1)[0]
-            df[1] = dt
+            df[2] = dt
             dfs.append(df)
         
         self.monitoring = pd.concat(dfs)

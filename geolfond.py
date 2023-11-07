@@ -66,7 +66,7 @@ def main() -> None:
 
     #: Юралс в периоде мониторинга
     mon = parser.get_oilprice_monitoring()
-    monitoring = Parser.transformer(data=mon.table)
+    monitoring = Parser.transformer(data=mon.data)
     monitoring.create_oil_monitoring()
     dfs.append(monitoring.monitoring)
     sheets.append("monitoring")
