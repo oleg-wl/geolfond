@@ -13,6 +13,8 @@ class DataKdemp(DataTransformer):
         super().__init__(data)
         self.logger = logging.getLogger("Kdemp")
         self.curr = curr
+        
+        self.dash = self.conf['LINKS']['dash']
 
     def create_abdt_index(self):
         """
@@ -205,7 +207,7 @@ class DataKdemp(DataTransformer):
             text_align="center",
         )
 
-        s0 = f'<p>Добрый день!<br>Направляем текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Прогноз получения демпфера в этом месяце - {demp}</p><p>Запас цены до норматива*: {demp_num}</p><p><a href="https://blps-datalab.gazprom-neft.local/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"> Посмотреть динамику на Дашборде </a></p>'
+        s0 = f'<p>Добрый день!<br>Направляем текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Прогноз получения демпфера в этом месяце - {demp}</p><p>Запас цены до норматива*: {demp_num}</p><p><a href="{self.dash}"> Посмотреть динамику на Дашборде </a></p>'
 
         s2 = "<p><em>*Если хотя бы по одному из видов топлива средняя цена по итогам месяца будет превышать норматив, то демпфер обнуляется как по АБ, так и по ДТ</em></p>"
 

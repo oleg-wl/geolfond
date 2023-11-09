@@ -149,13 +149,20 @@ class MultiplParser(ReestrParser):
             self.logger.info("Загружаю цены Юралс и Брент в мониторинге")
             
             #Получаем ссылки на последние публикации по нефти
+            u = "https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/submaterials/?type=&page="
             url1 = "https://www.economy.gov.ru/material/directions/vneshneekonomicheskaya_deyatelnost/tamozhenno_tarifnoe_regulirovanie/"
-            resp = self.session.get(url=url1, headers=_hpd).text
-            
-            page = bs(resp, "html.parser")
-            links: list = page.find_all(
-                "a", attrs={"title": re.compile("вывозных таможенных пошлин на нефть")}
-            )
+            #resp = self.session.get(url=url1, headers=_hpd).text
+
+            links = []
+            for p in range(1, 3):
+                self.logger.debug('запрос к минек  %s' %p)
+                resp = self.session.get(u+str(p), headers=_hpd).text    
+                page = bs(resp, "html.parser")
+                l: list = page.find_all(
+                "a", attrs={"title": re.compile("вывозных таможенных пошлин.* на нефть")}
+                )
+                for i in l:
+                    links.append(i)
 
             #Переходим по каждой ссылке
             patt = r"(\d{2} \w+ \d{4})" # паттерн даты публикации       
