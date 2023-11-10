@@ -411,5 +411,5 @@ class DataTransformer(BasicConfig):
             df[2] = dt
             dfs.append(df)
         
-        self.monitoring = pd.concat(dfs)
+        self.monitoring = pd.concat(dfs).ffill(axis=0)
         return self
