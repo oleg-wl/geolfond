@@ -290,6 +290,10 @@ class DataTransformer(BasicConfig):
         df_curr["Rate"] = df_curr["Rate"].str.replace(",", ".")
         df_curr["Rate"] = df_curr["Rate"].str.replace(" ", "")
         df_curr["Rate"] = pd.to_numeric(df_curr["Rate"])
+        
+        
+        full_dates = pd.DataFrame({'Dates': pd.date_range(start=min(df_curr['Dates']), end=max(df_curr['Dates']), freq='D')})
+        df_curr = df_curr.merge(full_dates, how='right', on = 'Dates').ffill(axis=0)
 
         return df_curr
     
