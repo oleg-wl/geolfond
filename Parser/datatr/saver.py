@@ -1,7 +1,7 @@
 import logging
 import pandas as pd
 import os
-from .base_config import BasicConfig
+from ..base_config import BasicConfig
 
 logger = logging.getLogger('saver')
 

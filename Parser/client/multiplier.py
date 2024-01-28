@@ -6,12 +6,12 @@ import certifi
 
 from bs4 import BeautifulSoup as bs
 
-from .headers import headers_price as _hp
-from .headers import headers_price_duty as _hpd
-from .headers import url_smtb as _urlsmtb
-from .headers import url_fas as _urlfas
+from ..headers import headers_price as _hp
+from ..headers import headers_price_duty as _hpd
+from ..headers import url_smtb as _urlsmtb
+from ..headers import url_fas as _urlfas
 
-from .client_reestr import ReestrParser
+from .reestr import ReestrParser
 
 
 class MultiplParser(ReestrParser):

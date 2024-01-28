@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<p>
+  Добрый день!</br>
+  Направляем текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по
+  итогам торгов {{ date }}
+</p>
+<p>
+  Прогноз получения демпфера в этом месяце - {% if delt_ab >= 0 or delt_dt >= 0
+  %} <b style="color: red">НЕТ</b>
+</p>
+
+<p>
+  Запас цены до норматива*: АБ:
+  <b style="color: red">{{ delt_ab*-1 | round }} </b> руб./тн; ДТ:
+  <b style="color: red">{{ delt_dt*-1 | round }}</b> руб./тн </p> {% else %}
+
+  <b style="color: green">ДА</b>
+</p>
+<p>Запас цены до норматива*: АБ:
+<b style="color: green">{{ delt_ab*-1 | round }} </b> руб./тн; ДТ:
+<b style="color: green">{{ delt_dt*-1 | round }}</b> руб./тн </p> {% endif %}
+
+<p><a href=""> Посмотреть динамику на Дашборде </a></p>
+<p><a href=""> Карта лицензионных участков </a></p>
+<table style="border-collapse: collapse; border: 1px solid black">
+  <tr>
+    <th style="border: 1px solid black; text-align: center">Дата</th>
+    <th style="border: 1px solid black; text-align: center; width: 100px">
+      АБ
+    </th>
+    <th style="border: 1px solid black; text-align: center">Средняя АБ</th>
+    <th style="border: 1px solid black; text-align: center">
+      Бензин 92 норматив
+    </th>
+    <th style="border: 1px solid black; text-align: center; width: 100px">
+      ДТ
+    </th>
+    <th style="border: 1px solid black; text-align: center">Средняя ДТ</th>
+    <th style="border: 1px solid black; text-align: center">Дизель норматив</th>
+  </tr>
+  {% for i, val in table.iterrows() %}
+  <tr>
+    <td style="border: 1px solid black; text-align: center">
+      {{ val['Дата']}}
+    </td>
+    <td style="border: 1px solid black; text-align: center">{{ val['АБ'] }}</td>
+    <td style="border: 1px solid black; text-align: center">
+      {{ val['Средняя_АБ']}}
+    </td>
+    {% if loop.index == 1 %}
+    <td
+      style="border: 1px solid black; text-align: center"
+      rowspan="{{table|length}}"
+    >
+      {{ val['Бензин92_норматив']}}
+    </td>
+    {% endif %}
+    <td style="border: 1px solid black; text-align: center">{{ val['ДТ']}}</td>
+    <td style="border: 1px solid black; text-align: center">
+      {{ val['Средняя_ДТ']}}
+    </td>
+    {% if loop.index == 1 %}
+    <td
+      style="border: 1px solid black; text-align: center"
+      rowspan="{{table|length}}"
+    >
+      {{ val['Дизель_норматив']}}
+    </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</table>
+<p>
+  <em
+    >*Если хотя бы по одному из видов топлива средняя цена по итогам месяца
+    будет превышать норматив, то демпфер обнуляется как по АБ, так и по ДТ</em
+  >
+</p>

@@ -1,6 +1,10 @@
 FROM python:bullseye
-WORKDIR /usr/src/app
-COPY . .
 
-RUN pip install pipenv && pipenv install  --deploy --ignore-pipfile && mkdir data
-CMD ["pipenv", "run", "python", "./geolfond.py"]
+RUN useradd -m appuser
+USER appuser
+
+VOLUME /home/appuser/app .
+WORKDIR /home/appuser/app
+
+RUN pip install -r requirements.txt
+CMD ["python", "./geolfond.py"]

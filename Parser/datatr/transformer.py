@@ -7,8 +7,8 @@ import logging
 import pandas as pd
 import numpy as np
 
-from .headers import cols as _cols
-from .base_config import BasicConfig
+from ..headers import cols as _cols
+from ..base_config import BasicConfig
 
 
 class DataTransformer(BasicConfig):

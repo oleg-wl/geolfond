@@ -15,7 +15,7 @@ from email import policy
 from exchangelib import Credentials, Account
 from exchangelib import Message, Mailbox, FileAttachment, HTMLBody
 
-from .base_config import BasicConfig
+from ..base_config import BasicConfig
 
 class EmailSender(BasicConfig):
         

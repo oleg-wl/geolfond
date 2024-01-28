@@ -8,12 +8,12 @@ from datetime import datetime
 from requests.exceptions import Timeout, RequestException
 from requests.exceptions import JSONDecodeError
 
-from .headers import url as _url
-from .headers import headers as _headers
-from .headers import json_data as _json_data
-from .headers import filter as _filter
+from ..headers import url as _url
+from ..headers import headers as _headers
+from ..headers import json_data as _json_data
+from ..headers import filter as _filter
 
-from .base_config import BasicConfig
+from ..base_config import BasicConfig
 
 class ReestrParser(BasicConfig):
     """Класс парсера данных о лицензионных участках. 

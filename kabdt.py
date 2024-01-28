@@ -25,8 +25,8 @@ def main():
 
         m = Parser.kdemp(data=data, curr=curr)
 
-        s = m.kdemp()
-        s = m.soup_html(s)
+        vars = m.kdemp()
+        s = m.create_message_body(vars=vars)
 
         ms = Parser.sender()
 

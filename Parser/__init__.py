@@ -1,14 +1,14 @@
 """
 Модуль для парсинга и подготовки данных из реестра Росгеолфонда для загрузки в BI и визуализации
 """
-from .client_reestr import ReestrParser as reestr
-from .client_multiplier import MultiplParser as multipl
+from .client.reestr import ReestrParser as reestr
+from .client.multiplier import MultiplParser as multipl
 
-from .data_sender import EmailSender as sender
+from .datatr.sender import EmailSender as sender
 
-from .data_transformer import DataTransformer as transformer
-from .data_saver import DataSaver as saver
-from .data_kabdt import DataKdemp as kdemp
+from .datatr.transformer import DataTransformer as transformer
+from .datatr.saver import DataSaver as saver
+from .datatr.kabdt import DataKdemp as kdemp
 
 from .headers import filter as _filter
 
@@ -24,4 +24,4 @@ logging.getLogger("exchangelib").setLevel(level=logging.INFO)
 logging.getLogger("spnego").setLevel(level=logging.INFO)
 logging.getLogger('exchangelib.util.xml').setLevel(level=logging.WARNING)
 
-__version__ = '4.0'
+__version__ = '5.0'

@@ -2,10 +2,12 @@ import os
 import pandas as pd
 import logging
 
+
+from jinja2 import Environment, PackageLoader, select_autoescape
 from bs4 import BeautifulSoup as bs
 from pretty_html_table import build_table
 
-from .data_transformer import DataTransformer
+from .transformer import DataTransformer
 
 
 class DataKdemp(DataTransformer):
@@ -153,14 +155,6 @@ class DataKdemp(DataTransformer):
         dt = self.abdt.loc[0, "date"]
         delt_ab = self.abdt.loc[0, "mean_АБ"] - self.abdt.loc[0, "Бензин92_норматив"]
         delt_dt = self.abdt.loc[0, "mean_ДТ"] - self.abdt.loc[0, "Дизель_норматив"]
-        color = "red" if (delt_ab >= 0) or (delt_dt >= 0) else "green"
-
-        demp = (
-            f'<b style="color: red;">НЕТ</b>'
-            if (delt_ab >= 0) or (delt_dt >= 0)
-            else f'<b style="color: green;">ДА</b>'
-        )
-        demp_num = f'АБ: <b style="color: {color};">{delt_ab*-1:n}</b> руб./тн; ДТ: <b style="color: {color};">{delt_dt*-1:n}</b> руб./тн'
 
         names = {
             "date": "Дата",
@@ -197,46 +191,17 @@ class DataKdemp(DataTransformer):
         self.abdt.loc[1:, "Бензин92_норматив"] = ""
         self.abdt.loc[1:, "Дизель_норматив"] = ""
 
-        # html w pretty-html-table
-        s1 = build_table(
-            self.abdt,
-            "grey_light",
-            index=False,
-            font_family="Calibri",
-            font_size="13px",
-            width="100px",
-            text_align="center",
+        vars = {
+            'date': dt, 'table': self.abdt, 'delt_ab': delt_ab, 'delt_dt': delt_dt}
+        return vars
+
+    @classmethod
+    def create_message_body(self, vars):
+        
+        env = Environment(
+            loader=PackageLoader("Parser"),
+            autoescape=select_autoescape()
         )
+        template = env.get_template("kabdt_message.html")
 
-        s0 = f'<p>Добрый день!<br>Направляем текущие средние цены АБ и ДТ внутреннего рынка для расчета Кдемп по итогам торгов {dt}</p> <p>Прогноз получения демпфера в этом месяце - {demp}</p><p>Запас цены до норматива*: {demp_num}</p><p><a href="{self.dash}"> Посмотреть динамику на Дашборде </a></p><p><a href="{self.geol}"> Карта лицензионных участков </a></p>'
-
-        s2 = "<p><em>*Если хотя бы по одному из видов топлива средняя цена по итогам месяца будет превышать норматив, то демпфер обнуляется как по АБ, так и по ДТ</em></p>"
-
-        return s0 + s1 + s2
-
-    def soup_html(self, html: str) -> str:
-        """Метод для стилизации html таблицы
-
-        Args:
-            html (str): строка из метода kdemp()
-
-        Returns:
-            str: строка для отправки в письме
-        """
-        page = bs(html, "lxml")
-
-        page.tbody.find_all("td")[3]["rowspan"] = len(page.tbody.tr) - 1
-        page.tbody.find_all("td")[6]["rowspan"] = len(page.tbody.tr) - 1
-
-        # td с индикативом для добавления атрибута rowspan по количеству строк (дней) в таблице
-        l = len(page.tbody.find_all("tr"))
-        for i in page.tbody.find("tr").find_all("td"):
-            if (i.string == "62 590") or (i.string == "64 620"):
-                i["rowspan"] = l
-
-        # убрать пустые td для корректного rowspan
-        for r in page.tbody.find_all("td"):
-            if r.string is None:
-                r.extract()
-
-        return bs.prettify(page)
+        return template.render(**vars)

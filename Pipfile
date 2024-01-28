@@ -16,6 +16,7 @@ pysocks = "*"
 socks = "*"
 openpyxl = "*"
 html5lib = "*"
+jinja2 = "*"
 
 [dev-packages]
 jupyter = "*"
