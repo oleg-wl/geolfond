@@ -2,11 +2,7 @@ import os
 import pandas as pd
 import logging
 
-
 from jinja2 import Environment, PackageLoader, select_autoescape
-from bs4 import BeautifulSoup as bs
-from pretty_html_table import build_table
-
 from .transformer import DataTransformer
 
 
