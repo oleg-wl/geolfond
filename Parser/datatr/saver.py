@@ -27,7 +27,7 @@ class DataSaver(BasicConfig):
         self.concat: bool = concat
         
         if self.concat:
-            self.dfs: list(pd.concat(self.dfs))
+            self.dfs = list(pd.concat(self.dfs))
 
     def save(self, name: str = "main.xlsx"):
         file = os.path.join(self.path, name)

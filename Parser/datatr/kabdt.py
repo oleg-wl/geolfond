@@ -1,3 +1,5 @@
+from typing import List
+
 import os
 import pandas as pd
 import logging
@@ -7,7 +9,7 @@ from .transformer import DataTransformer
 
 
 class DataKdemp(DataTransformer):
-    def __init__(self, data: [str | list | dict] = None, curr: dict = None) -> None:
+    def __init__(self, data: List[str | list | dict] = None, curr: dict = None) -> None:
         super().__init__(data)
         self.logger = logging.getLogger("Kdemp")
         self.curr = curr

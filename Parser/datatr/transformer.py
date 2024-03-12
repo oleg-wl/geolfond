@@ -1,3 +1,5 @@
+from typing import List
+
 import re
 import os
 from io import StringIO
@@ -15,7 +17,7 @@ class DataTransformer(BasicConfig):
     y = datetime.datetime.now().year
     m = datetime.datetime.now().month
 
-    def __init__(self, data: [str | list | dict] = None) -> None:
+    def __init__(self, data: List[str | list | dict] = None) -> None:
         
         self.logger = logging.getLogger('transformer')
         self.data = data
