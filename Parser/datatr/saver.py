@@ -1,44 +1,51 @@
 import logging
+from typing import TypeVar, List
 import pandas as pd
 import os
 from ..base_config import BasicConfig
 
-logger = logging.getLogger('saver')
+logger = logging.getLogger("saver")
+
 
 class DataSaver(BasicConfig):
+    T = TypeVar("T", List[pd.DataFrame], pd.DataFrame, str)
 
-    def __init__(
-        self,
-        dfs: list[pd.DataFrame],
-        sheets: list[str],
-        concat: bool = False
-    ) -> None:
-        """Класс для сохранения данных (датафреймов) в эксель файл
-        Количетсво датафреймов должно быть равно количеству названий
-        
-        Args:
-            dfs (list[pd.DataFrame]): Лист с датафреймами
-            sheets (list[str]): Список с названиями листов для датафреймов в эксель файле
-            concat (bool, optional): True если надо собрать список в один pd.concat. Defaults to False.
+    def __init__(self, dfs: T = None, sheets: T = None, concat: bool = False) -> None:
+        """
+        Сохранение датафрейма в формате Excel
+
+        :param T dfs: датафрейм или лист датафреймов джля сохранения, defaults to None
+        :param T sheets: название листа или лист с названиями, defaults to None
+        :param bool concat: _description_, defaults to False
+        :raises logger.exception: _description_
         """
         super().__init__()
-        self.dfs = dfs
-        self.sheets: list = sheets
+
+        if type(dfs, pd.DataFrame) and type(sheets, str):
+            self.dfs = list(dfs)
+            self.sheets = list(sheets)
+
+        elif type(dfs, list):
+            self.dfs = dfs
+            self.sheets = sheets
+            if len(self.dfs) != len(self.sheets):
+                raise logger.exception(
+                    "Количетсво датафреймов не равно количеству листов"
+                )
+        else:
+            raise logger.exception("dfs must be pd.Dataframe or list")
+
         self.concat: bool = concat
-        
+
         if self.concat:
             self.dfs = list(pd.concat(self.dfs))
 
     def save(self, name: str = "main.xlsx"):
         file = os.path.join(self.path, name)
-        
-        if len(self.dfs) == len(self.sheets):  
-            with pd.ExcelWriter(file) as writer:
-                c = 0
-                for df, sheet in zip(self.dfs, self.sheets):
-                    c += 1
-                    df.to_excel(writer, sheet_name=sheet, freeze_panes=(1, 0), na_rep="")
-            logger.info(f"Сохранено {c} листов в {file}")
-        
-        else:
-            logger.error('Количество названий листов не равно количеству датафреймов')
+
+        with pd.ExcelWriter(file) as writer:
+            c = 0
+            for df, sheet in zip(self.dfs, self.sheets):
+                c += 1
+                df.to_excel(writer, sheet_name=sheet, freeze_panes=(1, 0), na_rep="")
+        logger.info(f"Сохранено {c} листов в {file}")

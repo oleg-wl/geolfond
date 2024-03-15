@@ -1,48 +1,82 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# --------------------------------------------------------------------------
-# Основной скрипт для загрудки информации из росгеолфонда, Ц и Р в НДПИ
-# Добавь в cron или systemd.timer для получения резултата на почту
-# Указанную в config.ini по расписанию. Если адресатов несколько, результат
-# получит последний адресат из списка
-# --------------------------------------------------------------------------
+"""
+Запуск программы из консоли с выводом информации в консоль
+"""
+
+import click
 
 import Parser
 
 
-def parse_reestr_full() -> None:
-    #: Пропарсить весь реестр
+@click.command()
+def info():
+    """
+    О программе
+    """
+    click.echo("2024 год. Загрузка даных для расчета НДПИ.")
+    click.echo("email для связи geolfondapp@mail.ru")
 
-    try:
 
-        f = Parser._filter()
-        p = Parser.reestr()
-        
-        l = []
-        for i in f.keys():
-            data = p.get_data_from_reestr(filter=i)
-            
-            tr = Parser.transformer(data=data)
-            tr.create_df()
-            l.append(tr.rosnedra)
-        Parser.saver(dfs=l, sheets=['Sheet1'], concat=True).save(name='reestr_full.xlsx')
+@click.command()
+def init():
+    """
+    Начальная конфигурация перед первым запуском. Создает папку для сохранения и конфигфайл из примера.
+    """
+    Parser._conf.basic_config()
 
-    except Exception as e:
 
-        raise e
+@click.command()
+def oil_reestr():
+    """
+    Выгрузить реестр лицензионных участков УВ и направить на почту
+    """
+    click.echo("Загрузка данных из реестра")
+    parser = Parser.multipl()
+    data = parser.get_data_from_reestr(filter="oil")
+
+    #: oil.xlsx
+    tr = Parser.transformer(data=data)
+    tr.create_df()
+
+    # сохранить в файл свод датафреймов отдельным листом
+    saver = Parser.saver(dfs=tr.rosnedra, sheets="oil")
+    saver.save()
+
+    # Отправка сообщения
+    ms = Parser.sender()
+    # Если в config.ini несколько адресатов, отправлять только на последний
+    ms.smtp_to = [ms.smtp_to[-1]]
+
+    ms.create_message(
+        subj="Данные для дашборда лицензионных участков",
+        all=False,
+        filename=["main.xlsx"],
+        htmlstr="Выгрузка данных для ЛУ",
+    )
+    ms.send_message_f()
+
+
+@click.command()
+def calc():
+    pass
+
+
+@click.command()
+def matrix():
+    pass
 
 
 def main() -> None:
     #: Функция для скачивания только oil
-    
-    dfs = [] #Контейнер для датафреймов
-    sheets = [] #Контейнер названий листов
-    
+
+    dfs = []  # Контейнер для датафреймов
+    sheets = []  # Контейнер названий листов
+
     parser = Parser.multipl()
 
     data = parser.get_data_from_reestr(filter="oil")
-
 
     #: oil.xlsx
     tr = Parser.transformer(data=data)
@@ -82,12 +116,24 @@ def main() -> None:
     # Если в config.ini несколько адресатов, отправлять только на последний
     ms.smtp_to = [ms.smtp_to[-1]]
 
-    ms.create_message(subj='Данные для дашборда',
-        all=False, filename=["main.xlsx"], htmlstr="Выгрузка данных для дашборда"
+    ms.create_message(
+        subj="Данные для дашборда",
+        all=False,
+        filename=["main.xlsx"],
+        htmlstr="Выгрузка данных для дашборда",
     )
     ms.send_message_f()
 
 
+@click.group()
+def cli():
+    pass
+
+
+cli.add_command(info)
+cli.add_command(oil_reestr)
+cli.add_command(matrix)
+cli.add_command(calc)
 
 if __name__ == "__main__":
-    main()
+    cli()

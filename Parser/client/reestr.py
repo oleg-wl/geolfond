@@ -81,7 +81,7 @@ class ReestrParser(BasicConfig):
 
         # Создание запроса
         try:
-            self.logger.info('Загружаю данные из реестра')
+            self.logger.debug('Загружаю данные из реестра')
             response = self.session.post(self.url, headers=headers, json=json_data)
             self.logger.debug('Попытка подключения %s', response)
             response = response.json()
@@ -119,7 +119,7 @@ class ReestrParser(BasicConfig):
         self.filter: str = _filter(filter)
         
         self.logger.debug('arg %s :: фильтр %s' % (filter, self.filter))
-        self.logger.info('Применен фильтр: %s' % (filter))
+        self.logger.debug('Применен фильтр: %s' % (filter))
         
 
         #: Добпавление значения фильтра в заголовок запроса

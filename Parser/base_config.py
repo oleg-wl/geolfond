@@ -28,10 +28,12 @@ class BasicConfig:
         #создать папку для сохранения экселей, если нет
         if not os.path.exists(cls.path):
             os.mkdirs(cls.path)
+            print('%s created'% cls.path)
+        else: print('%s exists' %cls.path)
         
         #скопировать пример конфига в конфиг.ини
         if not os.path.exists(cls.cnf_path):
             shutil.copy(os.path.abspath('example.config.ini'), cls.cnf_path)
-
-            
-        
+            print('%s created'% cls.cnf_path)
+        else: print('%s exists' %cls.cnf_path)
+        print('Config.. OK')

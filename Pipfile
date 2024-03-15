@@ -16,6 +16,7 @@ socks = "*"
 openpyxl = "*"
 html5lib = "*"
 jinja2 = "*"
+click = "*"
 
 [dev-packages]
 jupyter = "*"
@@ -23,7 +24,3 @@ ipython = "*"
 
 [requires]
 python_version = "3.12"
-
-[cli]
-art = "*"
-click = "*"
