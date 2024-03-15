@@ -9,7 +9,6 @@ pandas = "*"
 numpy = "*"
 exchangelib = "*"
 bs4 = "*"
-pretty-html-table = "*"
 lxml = "*"
 openpyexcel = "*"
 pysocks = "*"
@@ -20,7 +19,7 @@ jinja2 = "*"
 
 [dev-packages]
 jupyter = "*"
-loguru = "*"
+ipython = "*"
 
 [requires]
 python_version = "3.12"
