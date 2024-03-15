@@ -122,14 +122,14 @@ class DataTransformer(BasicConfig):
         df["prev_lic"] = df["prew_full"].str.extract(pattern_for_lic)
         df["prev_date"] = df["prew_full"].str.extract(pattern_for_date)
         df["prev_date"] = pd.to_datetime(
-            df["prev_date"], format="%d.%m.%Y", errors="ignore", dayfirst=True
+            df["prev_date"], format="%d.%m.%Y", dayfirst=True
         )
 
         # Извлечение данных будущих лицензий
         df["forw_lic"] = df["forw_full"].str.extract(pattern_for_lic)
         df["forw_date"] = df["forw_full"].str.extract(pattern_for_date)
         df["forw_date"] = pd.to_datetime(
-            df["forw_date"], format="%d.%m.%Y", errors="ignore", dayfirst=True
+            df["forw_date"], format="%d.%m.%Y", dayfirst=True
         )
 
         # STEP COORDS
