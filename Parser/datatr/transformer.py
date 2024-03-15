@@ -321,86 +321,18 @@ class DataTransformer(BasicConfig):
         return self
 
     def create_fas_akciz(self) -> None:
-        """Метод для создания таблицы из данных сайта ФАС. Сохраняет в таблицу данные с 2023 года и позднее
+        """
+        Метод для создания таблицы из данных сайта ФАС. Сохраняет в таблицу данные с 2024 года
+        Сайт фас отдает 2024 год как верхнюю таблицу.
 
         Returns:
             self.fas: инстанс для добавления в лист и сохранения Parser.saver.save()
             _type_: self
         """
         
-        dfs = []
-        for table in self.data[4:]:
-            
-            t_lst: list[pd.DataFrame] = pd.read_html(StringIO(table), flavor="lxml")
-            t = t_lst[0].transpose()
-            
-            #фикс дубликата в названии столбца
-            t.iloc[0,1] = "Показатели1"
-            
-            t.columns = t.iloc[0]
-            t = t.drop(0)
-            dfs.append(t)
-        d = pd.concat(dfs)
-        
-        def add_vr(y):
-            # [Цаб_вр, Цдт_вр] по годам
-            # Указано к в НК в текущей редакции. Править тут руками в случае изменений в НК
-            match y:
-                case 2023:
-                    ab, dt = 56900, 53850
-                case 2024:
-                    ab, dt = 58650, 55500
-                case 2025:
-                    ab, dt = 60450, 57200
-                case 2026:
-                    ab, dt = 62300, 58950
-            return ab, dt
+        d = pd.read_html(StringIO(self.data[0]), flavor="lxml", header=0)
 
-        def add_C(y):
-            # Функция для добавления в выгрузку условных значений Цабвр_С и Цдтвр_С
-            match y:
-                case 2023:
-                    ab = 68068
-                    dt = 60775
-                case 2024:
-                    ab = 71472
-                    dt = 63814
-                case 2025:
-                    ab = 75046
-                    dt = 67005
-                case 2026:
-                    ab = 78798
-                    dt = 70355
-            return ab, dt
-
-        def add_2021(y):
-            # Функция для добавления в выгрузку условных значений Цабвр_2021 и Цдтвр_2021
-            match y:
-                case 2023:
-                    ab = 62000
-                    dt = 56000
-                case 2024:
-                    ab = 65000
-                    dt = 58700
-                case 2025:
-                    ab = 68300
-                    dt = 61700
-                case 2026:
-                    ab = 71700
-                    dt = 64800
-            return ab, dt
-
-        #Последняя таблица с сайта 
-        d['Показатели'] = d['Показатели'].ffill().astype(int)
-        
-        d[["Цабвр", "Цдтвр"]] = [*d['Показатели'].apply(add_vr)]
-        d[["Цабвр_С" , "Цдтвр_С"]] =  [*d['Показатели'].apply(add_C)]
-        d[["Цабвр_2021", "Цдтвр_2021"]] = [*d['Показатели'].apply(add_2021)]
-
-        # Кинв от года
-        d["Кнв"] = 1.3 if self.y in range(2023, 2027, 1) else 1
-
-        self.fas = d
+        self.fas = d[0]
         return self
 
     def create_oil_monitoring(self) -> pd.DataFrame:
