@@ -1,3 +1,4 @@
+from email import message
 import logging
 from typing import TypeVar, List
 import pandas as pd
@@ -21,19 +22,20 @@ class DataSaver(BasicConfig):
         """
         super().__init__()
 
-        if type(dfs, pd.DataFrame) and type(sheets, str):
-            self.dfs = list(dfs)
-            self.sheets = list(sheets)
+        if isinstance(dfs, pd.DataFrame) and isinstance(sheets, str):
+            self.dfs = [dfs]
+            self.sheets = [sheets]
 
-        elif type(dfs, list):
+        elif isinstance(dfs, list) and isinstance(sheets, list):
             self.dfs = dfs
             self.sheets = sheets
             if len(self.dfs) != len(self.sheets):
-                raise logger.exception(
+                logger.error(
                     "Количетсво датафреймов не равно количеству листов"
                 )
         else:
-            raise logger.exception("dfs must be pd.Dataframe or list")
+            logger.error("dfs must be pd.Dataframe or list")
+            
 
         self.concat: bool = concat
 
@@ -47,5 +49,5 @@ class DataSaver(BasicConfig):
             c = 0
             for df, sheet in zip(self.dfs, self.sheets):
                 c += 1
-                df.to_excel(writer, sheet_name=sheet, freeze_panes=(1, 0), na_rep="")
+                df.to_excel(writer, sheet_name=sheet, freeze_panes=(1, 0), na_rep="", engine='openpyxl')
         logger.info(f"Сохранено {c} листов в {file}")

@@ -93,22 +93,18 @@ class ReestrParser(BasicConfig):
         
         except Timeout as te:
             self.logger.error('Ошибка при попытке загрузить данные с сайта. Таймаут. Попробуй настроить прокси в config.ini %s', te, exc_info=False)
-            raise
         
         except RequestException as re:
             self.logger.error('Ошибка подключения данные с сайта', exc_info=False)
             self.logger.debug(re)
-            raise
         
         except JSONDecodeError as je:
             self.logger.error('Ошибка десериализации полученного json файла %s', je, exc_info=False)
             self.logger.debug('Строк в json: %s' % (len(response)), exc_info=True)
-            raise
         
         except Exception as e:
             self.logger.error('Ошибка при загрузке данных', exc_info=False)
             self.logger.debug(e)
-            raise
             
     def get_data_from_reestr(self, filter: str = "oil") -> list:
         """

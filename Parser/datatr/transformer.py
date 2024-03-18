@@ -50,6 +50,7 @@ class DataTransformer(BasicConfig):
             "prev_lic": "str",
             "prev_date": "datetime64[ns]",
             "prev_owner": "str",
+            "prew_full":"str",
             "forw_lic": "str",
             "forw_date": "datetime64[ns]",
             "type": "str",
@@ -216,8 +217,6 @@ class DataTransformer(BasicConfig):
         Метод создает матрицу для меппенига данныз из ГБЗ и из Росгеолфонда
         Сохраняет в эсксель таблицу _matrix.xlsx
         """
-        self.logger.info("Создаю матрицу")
-
         if self.rosnedra is None:
             raise ValueError("Нет данных для матрицы.")
 
@@ -248,7 +247,7 @@ class DataTransformer(BasicConfig):
         )
         lookup_table = lookup_table[
             ["Year", "old_lic", "old_year"]
-        ]  # .to_excel(excel_writer='data/test.xlsx')
+        ]
 
         # Создание датафрейма для матрицы соотношения номеров старых лицензий с текущими лицензиями
         index = list(set(lookup_table.index.to_list()))
@@ -268,7 +267,7 @@ class DataTransformer(BasicConfig):
         # Заполнение пустых ячеек вправо
         matrix = matrix.ffill(axis=1)
 
-        matrix_path = os.path.join(self.path, "_matrix.xlsx")
+        matrix_path = os.path.join(self.path, "matrix.xlsx")
         if os.path.exists(matrix_path):
             with pd.ExcelWriter(
                 path=matrix_path, if_sheet_exists="replace", mode="a"

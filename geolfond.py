@@ -15,7 +15,7 @@ def info():
     """
     О программе
     """
-    click.echo("2024 год. Загрузка даных для расчета НДПИ.")
+    click.echo("2024 год. Загрузка данных для расчета НДПИ.")
     click.echo("email для связи geolfondapp@mail.ru")
 
 
@@ -65,8 +65,27 @@ def calc():
 
 @click.command()
 def matrix():
-    pass
+    click.echo("Загрузка данных из реестра")
+    parser = Parser.multipl()
+    data = parser.get_data_from_reestr(filter="oil")
 
+    #: oil.xlsx
+    tr = Parser.transformer(data=data)
+    tr.create_df()
+    tr.create_matrix()
+
+    ms = Parser.sender()
+    # Если в config.ini несколько адресатов, отправлять только на последний
+    ms.smtp_to = [ms.smtp_to[-1]]
+
+    ms.create_message(
+        subj="Выгрузка лицензионных участков для ГБЗ",
+        all=False,
+        filename=["matrix.xlsx"],
+        htmlstr="Исторические данные лицензионных участков по годам",
+    )
+    ms.send_message_f()
+    
 
 def main() -> None:
     #: Функция для скачивания только oil
@@ -131,6 +150,7 @@ def cli():
 
 
 cli.add_command(info)
+cli.add_command(init)
 cli.add_command(oil_reestr)
 cli.add_command(matrix)
 cli.add_command(calc)

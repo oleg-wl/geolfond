@@ -27,7 +27,7 @@ class BasicConfig:
         
         #создать папку для сохранения экселей, если нет
         if not os.path.exists(cls.path):
-            os.mkdirs(cls.path)
+            os.mkdir(cls.path)
             print('%s created'% cls.path)
         else: print('%s exists' %cls.path)
         
