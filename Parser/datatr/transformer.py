@@ -208,7 +208,7 @@ class DataTransformer(BasicConfig):
             self.logger.warning(err)
         finally:
             # Датафрейм для сохранения или передачи методу create_matrix
-            self.rosnedra = df[list(types.keys())].reset_index()
+            self.rosnedra = df[list(types.keys())]#.reset_index()
 
         return self
 
