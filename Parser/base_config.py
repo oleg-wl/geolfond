@@ -1,5 +1,6 @@
 import os
 import shutil
+import logging
 
 from configparser import ConfigParser
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -15,10 +16,20 @@ class BasicConfig:
     
     conf: dict = config_file._sections
     
-    try:
-        path = conf['PATHS']['data_folder']
-    except KeyError:
-        path = 'data'
+    path: str = config_file.get('default', 'data_folder', fallback = 'data')
+    loglevel: int = config_file.getboolean('default', 'debug', fallback=False)
+    
+
+    logging.basicConfig(
+        format="%(levelname)s - %(asctime)s: %(message)s LINE: (%(lineno)d) in %(name)s",
+        datefmt="%x %X", level=logging.WARNING
+    )
+    if loglevel: logging.basicConfig(level=logging.DEBUG)
+    
+    logging.getLogger("urllib3").setLevel(level=logging.WARNING)
+    logging.getLogger("exchangelib").setLevel(level=logging.WARNING)
+    logging.getLogger("spnego").setLevel(level=logging.WARNING)
+    logging.getLogger('exchangelib.util.xml').setLevel(level=logging.WARNING)
     
     @classmethod
     def basic_config(cls) -> None:

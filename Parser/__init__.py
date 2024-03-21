@@ -13,16 +13,5 @@ from .datatr.kabdt import DataKdemp as kdemp
 from .base_config import BasicConfig as _conf
 from .headers import filter as _filter
 
-import logging
-
-logging.basicConfig(
-    format="%(levelname)s - %(asctime)s: %(message)s LINE: (%(lineno)d) in %(name)s",
-    datefmt="%x %X",
-    level=logging.INFO,
-)
-logging.getLogger("urllib3").setLevel(level=logging.INFO)
-logging.getLogger("exchangelib").setLevel(level=logging.INFO)
-logging.getLogger("spnego").setLevel(level=logging.INFO)
-logging.getLogger('exchangelib.util.xml').setLevel(level=logging.WARNING)
 
 __version__ = '5.0'
