@@ -53,6 +53,8 @@ class DataTransformer(BasicConfig):
             "prew_full":"str",
             "forw_lic": "str",
             "forw_date": "datetime64[ns]",
+            "date_stop": "datetime64[ns]",
+            "date_end": "datetime64[ns]",
             "type": "str",
             "state": "str",
             "Last": "bool",
@@ -90,6 +92,10 @@ class DataTransformer(BasicConfig):
 
         # Анулированные лицензии
         df["status"] = df["ordered"].str.extract(patt_status)
+        
+        #Лицензии, сданные ликвидированными обществами
+        mask = (df['date_stop'].notna() == True) & (df['status'].isna() == True)
+        df.loc[mask, 'status'] = 'Лицензия сдана'
 
         #: Очистка для столбца с видом полезного ископаемого
         df["filter"] = df["filter"].str.slice(start=4)
