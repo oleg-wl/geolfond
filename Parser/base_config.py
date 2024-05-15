@@ -44,7 +44,7 @@ class BasicConfig:
         
         #скопировать пример конфига в конфиг.ини
         if not os.path.exists(cls.cnf_path):
-            shutil.copy(os.path.abspath('example.config.ini'), cls.cnf_path)
+            shutil.copy(os.path.abspath('Parser/example.config.ini'), cls.cnf_path)
             print('%s created'% cls.cnf_path)
         else: print('%s exists' %cls.cnf_path)
         print('Config.. OK')
