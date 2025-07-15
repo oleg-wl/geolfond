@@ -3,6 +3,9 @@
 """
 import logging
 import requests
+requests.packages.urllib3.disable_warnings()
+
+
 from datetime import datetime
 
 from requests.exceptions import Timeout, RequestException

@@ -14,8 +14,8 @@ class DataKdemp(DataTransformer):
         self.logger = logging.getLogger("Kdemp")
         self.curr = curr
         
-        self.dash = self.conf['LINKS']['dash']
-        self.geol = self.conf['LINKS']['geol']
+        self.dash = self.conf.get('LINKS','dash')
+        self.geol = self.conf.get('LINKS','geol')
 
     def create_abdt_index(self):
         """

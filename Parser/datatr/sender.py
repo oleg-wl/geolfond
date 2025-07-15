@@ -1,3 +1,5 @@
+from configparser import ConfigParser
+
 from configparser import NoSectionError
 import glob
 import os
@@ -23,11 +25,10 @@ class EmailSender(BasicConfig):
 
         self.logger = logging.getLogger('email-sender')
         self.message = None
-
         
-        self.email_conf: dict = self.conf.get('EMAIL', False)
+        self.email_conf: dict = self.conf.get('email', False)
         self.owa: dict = self.conf.get('OWA', False)
-        
+
         if self.conf:
             self.smtp_user: str = self.email_conf.get("smtp_user")
             self.smtp_pass: str = self.email_conf.get("smtp_password")
@@ -39,7 +40,7 @@ class EmailSender(BasicConfig):
             self.logger.error(
                 "Необходимо указать данные для отправки email в config.ini"
             )
-            raise NoSectionError
+            raise NoSectionError('123')
 
         self.files = glob.glob(rf"{self.path}/*.xlsx")
         #: проверка что в папке есть файлы для отправки

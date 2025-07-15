@@ -3,42 +3,25 @@
   Добрый день! Направляем текущие средние цены АБ и ДТ внутреннего рынка для
   расчета Кдемп по итогам торгов {{ date }}
 </p>
-<p>
-  Прогноз получения демпфера в этом месяце - {% if delt_ab >= 0 or delt_dt >= 0
-  %} <b style="color: red">НЕТ</b>
+<p>Прогноз получения демпфера в этом месяце  по АБ - {% if delt_ab >= 0 %} <b style="color: red">НЕТ</b><br>
+ Запас цены до норматива АБ:
+ <b style="color: red">{{ delt_ab*-1 | round }} </b> руб./тн.
+ {% else %}
+ <b style="color: green">ДА</b><br>
+Запас цены до норматива АБ:
+ <b style="color: green">{{ delt_ab*-1 | round }} </b> руб./тн.
 </p>
-
-<p>
-  Запас цены до норматива*: АБ:
-  <b style="color: red">{{ delt_ab*-1 | round }} </b> руб./тн; ДТ:
-  <b style="color: red">{{ delt_dt*-1 | round }}</b> руб./тн
-</p>
-{% else %}
-
-<b style="color: green">ДА</b></p>
-<p>
-  Запас цены до норматива*: АБ:
-  <b style="color: green">{{ delt_ab*-1 | round }} </b> руб./тн; ДТ:
-  <b style="color: green">{{ delt_dt*-1 | round }}</b> руб./тн
+{% endif %}
+<p>Прогноз получения демпфера в этом месяце  по ДТ - {% if delt_dt >= 0 %} <b style="color: red">НЕТ</b><br>
+ Запас цены до норматива ДТ:
+ <b style="color: red">{{ delt_dt*-1 | round }} </b> руб./тн.
+ {% else %}
+ <b style="color: green">ДА</b><br>
+Запас цены до норматива ДТ:
+ <b style="color: green">{{ delt_dt*-1 | round }} </b> руб./тн.
 </p>
 {% endif %}
 
-<p>
-  <a
-    href="https://blps-datalab.gazprom-neft.local/sense/app/b334752d-ee58-46db-8ff0-764b6ea10a3c/sheet/bb5a5146-03b7-43a1-8d8b-48de26d71c8e/state/analysis"
-  >
-    Посмотреть динамику на Дашборде
-  </a>
-</p>
-<p>
-  <a
-    href="
-  https://blps-datalab.gazprom-neft.local/sense/app/e28b167a-43b4-4c23-a8f9-67d4977f7ba4/sheet/8810408d-a1a2-486e-8efd-a4f3b01f6c25/state/analysis
-"
-  >
-    Карта лицензионных участков
-  </a>
-</p>
 <table style="border-collapse: collapse; border: 1px solid black">
   <tr>
     <th style="border: 1px solid black; text-align: center">Дата</th>

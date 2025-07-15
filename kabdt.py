@@ -30,19 +30,21 @@ def main():
 
         ms = Parser.sender()
 
-        ms.owa_message(
-            subj=f"Текущие лимиты Кдемп - {n}",
-            msg=s,
-            attch=["СредняяЦенаАБДТ.xlsx", "СредняяЦенаАБДТ_накоп.xlsx"]
-        )
+#        ms.owa_message(
+#            subj=f"Текущие лимиты Кдемп - {n}",
+#            msg=s,
+#            attch=["СредняяЦенаАБДТ.xlsx", "СредняяЦенаАБДТ_накоп.xlsx"]
+#        )
+
         logger.info(f'Отправлено первое сообщение в адрес {ms.smtp_to}')
+        
         
         
         ms.create_message(
             subj= f"Текущие лимиты Кдемп - {n}",
             htmlstr=s,
             filename=["СредняяЦенаАБДТ.xlsx"])
-        ms.message.replace_header('To', ms.smt_to_2)
+        #ms.message.replace_header('To', ms.smt_to_2)
         
         ms.send_message_f()
         logger.info(f'Отправлено второе сообщение в адрес {ms.message["To"]}')
